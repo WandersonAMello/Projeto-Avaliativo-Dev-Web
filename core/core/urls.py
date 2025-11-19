@@ -27,4 +27,6 @@ urlpatterns = [
 
     # API
     path('autenticacao-api/', LoginAPI.as_view(), name='autenticacao-api'),
-]
+
+    path('objetos/', include('objetos.urls'), name='objetos'),
+    ]
