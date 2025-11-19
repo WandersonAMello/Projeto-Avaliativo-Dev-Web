@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.jpg' %}"/>
+
+    <title>{% block titulo %} Desenvolvimento webmobile {% endblock %}</title>
+
+    <link type="text/css" rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script type="text/javascript" src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    {% block css_local %}{% endblock %}
+    {% block javascript_local %}{% endblock %}
+</head>
+
+<body>
+    <div id="menu-superior">
+        {% block menu_superior %}
+        <div class="container">
+            <header class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4">
+              <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
+                <li>
+                    <a href="/veiculo" class="nav-link px-2 link-secondary">
+                        Listar veículos
+                    </a>
+                </li>
+                <li>
+                    <a href="/veiculo/novo" class="nav-link px-2 link-dark">
+                        Cadastrar veículo
+                    </a>
+                </li>
+                <li>
+                    <a href="/anuncio" class="nav-link px-2 link-dark">
+                        Anúncios
+                    </a>
+                </li>
+              </ul>
+              <div class="col-md-3 text-end">
+                <a href="/logout" type="button" class="btn btn-secondary position-relative">
+                    Logout
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">
+                        {{user}}
+                    </span>
+                </a>
+              </div>
+            </header>
+          </div>
+        {% endblock %}
+    </div>
+
+    <div id="conteudo">
+        {% block conteudo %}{% endblock %}
+    </div>
+</body>
+</html>
