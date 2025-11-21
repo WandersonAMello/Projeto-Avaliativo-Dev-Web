@@ -15,7 +15,7 @@ class Login(View):
     def get(self, request):
         contexto = {}
         if request.user.is_authenticated:
-            return redirect('/home')  # Redireciona para a página de veículos se o usuário já estiver autenticado
+            return redirect('/home')  # Redireciona para a página de  se o usuário já estiver autenticado
         else:
             return render(request, 'autenticacao.html', contexto)
 
