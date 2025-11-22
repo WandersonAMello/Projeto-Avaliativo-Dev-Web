@@ -41,6 +41,11 @@ CORS_ALLOW_HEADERS = [
 ]
 CORS_ORIGIN_ALLOW_ALL = True
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8100",
+    "http://127.0.0.1:8100",
+]
+
 # Application definition
 
 INSTALLED_APPS = [

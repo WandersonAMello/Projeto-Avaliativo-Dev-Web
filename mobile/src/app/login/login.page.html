@@ -1,0 +1,20 @@
+<ion-content [fullscreen]="true">
+  <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+    <h2 class="ion-text-center">Achados & Perdidos</h2>
+    
+    <form (submit)="autenticarUsuario()">
+      <ion-list>
+        <ion-item>
+          <ion-input label="Usuário" type="text" name="usuario" [(ngModel)]="instancia.username"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-input label="Senha" type="password" name="senha" [(ngModel)]="instancia.password"></ion-input>
+        </ion-item>
+      </ion-list>
+      <br>
+      <ion-button expand="block" (click)="autenticarUsuario()" class="ion-text-center">
+        Entrar
+      </ion-button>
+    </form>
+  </div>
+</ion-content>
