@@ -2,16 +2,15 @@ from rest_framework import serializers
 from .models import Objeto
 
 class SerializadorObjeto(serializers.ModelSerializer):
-    # Campos somente leitura (calculados)
     dias_custodia = serializers.SerializerMethodField()
-    nome_local = serializers.SerializerMethodField()
+    local_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Objeto
-        fields = '__all__' # Pega tudo, inclusive a foto
+        fields = '__all__'
 
     def get_dias_custodia(self, obj):
         return obj.dias_em_custodia()
 
-    def get_nome_local(self, obj):
+    def get_local_display(self, obj):
         return obj.get_local_display()
