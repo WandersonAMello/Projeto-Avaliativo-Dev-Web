@@ -1,15 +1,16 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Importante para o *ngFor e date pipe
+import { CommonModule } from '@angular/common'; // Necessário para *ngIf e *ngFor se misturar sintaxe
 import { FormsModule } from '@angular/forms';
-import { 
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton, 
-  IonIcon, IonList, IonItem, IonLabel, IonFab, IonFabButton, 
-  AlertController, ToastController, NavController 
+import {
+  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
+  IonIcon, IonList, IonItem, IonImg, IonThumbnail, IonLabel, IonFab, IonFabButton,
+  ToastController, NavController, ModalController, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { add, logOutOutline, trashOutline, timeOutline, locationOutline } from 'ionicons/icons';
-import { ObjetoService } from './objeto.service'; //
+import { ObjetoService } from './objeto.service';
 import { Storage } from '@ionic/storage-angular';
+import { NovoObjetoComponent } from './novo-objeto/novo-objeto.component';
 
 @Component({
   selector: 'app-objetos',
@@ -17,8 +18,9 @@ import { Storage } from '@ionic/storage-angular';
   styleUrls: ['./objetos.page.scss'],
   standalone: true,
   imports: [
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton, 
+    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
     IonIcon, IonList, IonItem, IonLabel, IonFab, IonFabButton,
+    IonImg, IonThumbnail, // <--- Adicionado para suportar imagens
     CommonModule, FormsModule
   ],
   providers: [Storage]
@@ -29,12 +31,12 @@ export class ObjetosPage implements OnInit {
 
   constructor(
     private service: ObjetoService,
-    private alertCtrl: AlertController,
+    private modalCtrl: ModalController,
     private toastCtrl: ToastController,
+    private alertCtrl: AlertController, // <--- Adicionado (estava faltando para o método excluir)
     private navCtrl: NavController,
     private storage: Storage
   ) {
-    // Registra os ícones que vamos usar no HTML
     addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline });
   }
 
@@ -42,7 +44,7 @@ export class ObjetosPage implements OnInit {
     await this.storage.create();
   }
 
-  // Executado toda vez que a página entra em foco (melhor que ngOnInit para listas dinâmicas)
+  // Garante que a lista atualize sempre que você voltar para essa tela
   ionViewWillEnter() {
     this.carregarLista();
   }
@@ -59,42 +61,19 @@ export class ObjetosPage implements OnInit {
     }
   }
 
+  // Abre o Modal (Janela sobreposta) com o componente de cadastro
   async novoRegistro() {
-    const alert = await this.alertCtrl.create({
-      header: 'Novo Achado',
-      inputs: [
-        { name: 'descricao', type: 'text', placeholder: 'Descrição (ex: Casaco Azul)' },
-        { name: 'local', type: 'text', placeholder: 'Local (ex: BLOCO_A)' }, 
-        // Nota: Para ser perfeito, 'local' deveria ser um select, mas text funciona para teste
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Salvar',
-          handler: async (dados) => {
-            if (!dados.descricao || !dados.local) {
-              this.mostrarToast('Preencha todos os campos!');
-              return false; // Mantém o alerta aberto
-            }
-            
-            // Chama o serviço para salvar
-            try {
-                // Passamos 'NOVO' como estado padrão
-                const resp = await this.service.cadastrar(dados.descricao, dados.local, 'NOVO');
-                if (resp.status === 201) {
-                    this.mostrarToast('Cadastrado com sucesso!');
-                    this.carregarLista(); // Atualiza a lista na hora
-                    return true;
-                }
-            } catch (e) {
-                this.mostrarToast('Erro ao salvar.');
-            }
-            return false;
-          }
-        }
-      ]
+    const modal = await this.modalCtrl.create({
+      component: NovoObjetoComponent
     });
-    await alert.present();
+
+    await modal.present();
+
+    // Aguarda o modal fechar para ver se precisa atualizar a lista
+    const { data } = await modal.onWillDismiss();
+    if (data) {
+      this.carregarLista();
+    }
   }
 
   async excluir(id: number) {
@@ -108,9 +87,9 @@ export class ObjetosPage implements OnInit {
           handler: async () => {
             try {
               await this.service.remover(id);
-              this.carregarLista();
+              this.carregarLista(); // Atualiza a lista visualmente
               this.mostrarToast('Item removido.');
-            } catch (error) {
+            } catch (e) {
               this.mostrarToast('Erro ao excluir.');
             }
           }

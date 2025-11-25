@@ -15,12 +15,6 @@ import { Usuario } from './usuario.model';
 })
 export class LoginPage implements OnInit {
 
-  // Estrutura para o formulário
-  public instancia: { username: string, password: string } = {
-    username: '',
-    password: ''
-  };
-
   constructor(
     public controle_carregamento: LoadingController,
     public controle_navegacao: NavController,
@@ -33,33 +27,42 @@ export class LoginPage implements OnInit {
     await this.storage.create();
   }
 
+  public instancia: { username: string, password: string } = {
+    username: '',
+    password: ''
+  };
+
   async autenticarUsuario() {
+
+    // Inicializa interface com efeito de carregamento
     const loading = await this.controle_carregamento.create({message: 'Autenticando...', duration: 15000});
     await loading.present();
 
-    // 🔴 ATENÇÃO: Ajuste o IP conforme sua apresentação
-    // Emulador Android Studio: 'http://10.0.2.2:8000/autenticacao-api/'
-    // Navegador ou Celular via USB: 'http://SEU_IP_PC:8000/autenticacao-api/'
-    const apiUrl = 'http://127.0.0.1:8000/autenticacao-api/';
-
+    // Define informações do cabeçalho da requisição
     const options: HttpOptions = {
       headers: {'Content-Type': 'application/json'},
-      url: apiUrl, 
+      url: 'http://127.0.0.1:8000/autenticacao-api/',
       data: this.instancia
     };
 
+    // Autentica usuário junto a API do sistema web
     CapacitorHttp.post(options)
       .then(async (resposta: HttpResponse) => {
+
+        // Verifica se a requisição foi processada com sucesso
         if(resposta.status == 200) {
-          // Salva o usuário
+
+          // Armazena localmente as credenciais de usuário
           let usuario: Usuario = Object.assign(new Usuario(), resposta.data);
           await this.storage.set('usuario', usuario);
           
+          // Finaliza autenticação e redireciona para interface inicial
           loading.dismiss();
-          
           this.controle_navegacao.navigateRoot('/objetos');
         }
         else {
+
+          // Finaliza autenticação e apresenta mensagem de erro
           loading.dismiss();
           this.apresenta_mensagem(resposta.status);
         }
@@ -67,7 +70,7 @@ export class LoginPage implements OnInit {
       .catch(async (erro: any) => {
         console.log(erro);
         loading.dismiss();
-        this.apresenta_mensagem(erro?.status || 0);
+        this.apresenta_mensagem(erro?.status);
       });
   }
 
