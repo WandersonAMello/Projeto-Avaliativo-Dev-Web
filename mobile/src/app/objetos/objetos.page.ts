@@ -1,79 +1,102 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Necessário para *ngIf e *ngFor se misturar sintaxe
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
-  IonIcon, IonList, IonItem, IonImg, IonThumbnail, IonLabel, IonFab, IonFabButton,
-  ToastController, NavController, ModalController, AlertController
+import { 
+  IonContent, IonHeader, IonTitle, IonToolbar, LoadingController, NavController, ToastController, 
+  IonButtons, IonButton, IonIcon, IonList, IonItem, IonThumbnail, IonLabel, IonFab, IonFabButton, 
+  IonImg, ModalController, AlertController 
 } from '@ionic/angular/standalone';
+import { Storage } from '@ionic/storage-angular';
+import { CapacitorHttp, HttpOptions, HttpResponse } from '@capacitor/core';
 import { addIcons } from 'ionicons';
 import { add, logOutOutline, trashOutline, timeOutline, locationOutline } from 'ionicons/icons';
-import { ObjetoService } from './objeto.service';
-import { Storage } from '@ionic/storage-angular';
+
+import { Usuario } from '../login/usuario.model';
 import { NovoObjetoComponent } from './novo-objeto/novo-objeto.component';
 
 @Component({
+  standalone: true,
   selector: 'app-objetos',
   templateUrl: './objetos.page.html',
   styleUrls: ['./objetos.page.scss'],
-  standalone: true,
   imports: [
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
-    IonIcon, IonList, IonItem, IonLabel, IonFab, IonFabButton,
-    IonImg, IonThumbnail, // <--- Adicionado para suportar imagens
+    IonFab, IonFabButton, IonImg, IonThumbnail, IonLabel, IonItem, IonList, 
+    IonIcon, IonButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, 
     CommonModule, FormsModule
   ],
   providers: [Storage]
 })
 export class ObjetosPage implements OnInit {
 
+  public usuario: Usuario = new Usuario();
   public lista_objetos: any[] = [];
 
   constructor(
-    private service: ObjetoService,
-    private modalCtrl: ModalController,
-    private toastCtrl: ToastController,
-    private alertCtrl: AlertController, // <--- Adicionado (estava faltando para o método excluir)
-    private navCtrl: NavController,
-    private storage: Storage
-  ) {
+    public storage: Storage,
+    public controle_toast: ToastController,
+    public controle_navegacao: NavController,
+    public controle_carregamento: LoadingController,
+    public modalCtrl: ModalController,
+    public alertCtrl: AlertController
+  ) { 
     addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline });
   }
 
   async ngOnInit() {
+    // Verifica se existe registro de configuração para o último usuário autenticado
     await this.storage.create();
+    const registro = await this.storage.get('usuario');
+
+    if(registro) {
+      this.usuario = Object.assign(new Usuario(), registro);
+      this.consultarObjetosWeb();
+    }
+    else{
+      this.controle_navegacao.navigateRoot('/login');
+    }
   }
 
-  // Garante que a lista atualize sempre que você voltar para essa tela
   ionViewWillEnter() {
-    this.carregarLista();
-  }
-
-  async carregarLista() {
-    try {
-      const resposta = await this.service.listar();
-      if (resposta.status === 200) {
-        this.lista_objetos = resposta.data;
-      }
-    } catch (erro) {
-      console.error(erro);
-      this.mostrarToast('Erro ao carregar objetos.');
+    // Garante atualização ao voltar para a tela (se usuário já estiver carregado)
+    if (this.usuario && this.usuario.token) {
+        this.consultarObjetosWeb();
     }
   }
 
-  // Abre o Modal (Janela sobreposta) com o componente de cadastro
-  async novoRegistro() {
-    const modal = await this.modalCtrl.create({
-      component: NovoObjetoComponent
-    });
+  async consultarObjetosWeb() {
+    // Inicializa interface com efeito de carregamento
+    const loading = await this.controle_carregamento.create({message: 'Pesquisando...', duration: 60000});
+    await loading.present();
 
-    await modal.present();
+    // Define informações do cabeçalho da requisição
+    const options: HttpOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${this.usuario.token}`
+      },
+      url: 'http://127.0.0.1:8000/objetos/api/'
+    };
 
-    // Aguarda o modal fechar para ver se precisa atualizar a lista
-    const { data } = await modal.onWillDismiss();
-    if (data) {
-      this.carregarLista();
-    }
+    CapacitorHttp.get(options)
+      .then(async (resposta: HttpResponse) => {
+        // Verifica se a requisição foi processada com sucesso
+        if(resposta.status == 200) {
+          this.lista_objetos = resposta.data;
+          
+          // Finaliza interface com efeito de carregamento
+          loading.dismiss();
+        }
+        else {
+          // Finaliza e apresenta mensagem de erro
+          loading.dismiss();
+          this.apresenta_mensagem(`Falha ao consultar objetos: código ${resposta.status}`);
+        }
+      })
+      .catch(async (erro: any) => {
+        console.log(erro);
+        loading.dismiss();
+        this.apresenta_mensagem(`Falha ao consultar objetos: código ${erro?.status}`);
+      });
   }
 
   async excluir(id: number) {
@@ -85,13 +108,7 @@ export class ObjetosPage implements OnInit {
         {
           text: 'Sim, Excluir',
           handler: async () => {
-            try {
-              await this.service.remover(id);
-              this.carregarLista(); // Atualiza a lista visualmente
-              this.mostrarToast('Item removido.');
-            } catch (e) {
-              this.mostrarToast('Erro ao excluir.');
-            }
+             this.excluirObjeto(id);
           }
         }
       ]
@@ -99,17 +116,67 @@ export class ObjetosPage implements OnInit {
     await alert.present();
   }
 
-  async logout() {
-    await this.storage.remove('usuario');
-    this.navCtrl.navigateRoot('/login');
+  async excluirObjeto(id: number) {
+    // Inicializa interface com efeito de carregamento
+    const loading = await this.controle_carregamento.create({message: 'Excluindo...', duration: 30000});
+    await loading.present();
+
+    const options: HttpOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${this.usuario.token}`
+      },
+      url: `http://127.0.0.1:8000/objetos/api/${id}/`
+    };
+
+    CapacitorHttp.delete(options)
+      .then(async (resposta: HttpResponse) => {
+        // Verifica se a requisição foi processada com sucesso (204 No Content)
+        if(resposta.status == 204) {
+          loading.dismiss();
+        }
+        else {
+          loading.dismiss();
+          this.apresenta_mensagem(`Falha ao excluir o objeto: código ${resposta.status}`);
+        }
+      })
+      .catch(async (erro: any) => {
+        console.log(erro);
+        loading.dismiss();
+        this.apresenta_mensagem(`Falha ao excluir o objeto: código ${erro?.status}`);
+      })
+      .finally(() => {
+        // Consulta novamente a lista de objetos
+        this.lista_objetos = [];
+        this.consultarObjetosWeb();
+      });
   }
 
-  async mostrarToast(msg: string) {
-    const toast = await this.toastCtrl.create({
-      message: msg,
-      duration: 2000,
-      position: 'bottom'
+  async novoRegistro() {
+    const modal = await this.modalCtrl.create({
+      component: NovoObjetoComponent
     });
-    toast.present();
+
+    await modal.present();
+
+    // Aguarda o modal fechar para ver se precisa atualizar a lista
+    const { data } = await modal.onWillDismiss();
+    if (data) {
+      this.consultarObjetosWeb();
+    }
+  }
+
+  async logout() {
+    await this.storage.remove('usuario');
+    this.controle_navegacao.navigateRoot('/login');
+  }
+
+  async apresenta_mensagem(texto: string) {
+    const mensagem = await this.controle_toast.create({
+      message: texto,
+      cssClass: 'ion-text-center',
+      duration: 2000
+    });
+    mensagem.present();
   }
 }
