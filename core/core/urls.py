@@ -18,13 +18,13 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from core.views import Login, Logout, LoginAPI
+from core.views import Login, Logout, LoginAPI, CadastroUsuario
 
 urlpatterns = [
-    path('', Login.as_view(), name='Login'), #redireciona a url raiz para a view de login
+    path('login/', Login.as_view(), name='Login'), #redireciona a url /login para a view de login
     path('logout/', Logout.as_view(), name='Logout'), #redireciona a url /logout para a view de logout
+    path('cadastro/', CadastroUsuario.as_view(), name='cadastro'),
     path('admin/', admin.site.urls), #redireciona todas as urls /admin para o admin do django
-
     # API
     path('autenticacao-api/', LoginAPI.as_view(), name='autenticacao-api'),
 

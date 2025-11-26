@@ -3,11 +3,13 @@
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
+from django.urls import reverse_lazy
 
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
+from .forms import FormularioCadastro
 class Login(View):
     """
     Class-based view para autenticação de usuários.
@@ -64,3 +66,8 @@ class LoginAPI(ObtainAuthToken):
             'email': user.email,
             'token': token.key
         })
+
+class CadastroUsuario(CreateView):
+    template_name = 'cadastro.html'
+    form_class = FormularioCadastro
+    success_url = reverse_lazy('login')
