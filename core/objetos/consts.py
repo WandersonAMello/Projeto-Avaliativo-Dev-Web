@@ -17,6 +17,7 @@ LOCAL_CHOICES = [
     ('BLOCO_IV', 'Bloco IV'),
 
     # Outros Locais
+    ('BIBLIOTECA', 'Biblioteca'),
     ('REITORIA', 'Reitoria'),
     ('RU', 'Restaurante Universitário'),
     ('PRAINHA', 'Prainha'),

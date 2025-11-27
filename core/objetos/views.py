@@ -12,10 +12,13 @@ from django.views.generic import View
 from django.views.decorators.http import require_POST
 from django.core.exceptions import ObjectDoesNotExist
 
-from rest_framework.generics import ListAPIView, DestroyAPIView, CreateAPIView
-from objetos.serializers import SerializadorObjeto
+from rest_framework.generics import ListAPIView, CreateAPIView, DestroyAPIView, RetrieveUpdateAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
+from objetos.serializers import SerializadorObjeto
 
 from .consts import LOCAL_CHOICES, TIPO_CHOICES
 
@@ -185,3 +188,114 @@ class FotoObjeto(View):
             raise Http404("Foto não encontrada ou acesso negado")
         except Exception as exeption:
             raise exeption
+
+class APIListarObjetos(ListAPIView):
+    """
+    Lista todos os objetos públicos (status 'ATIVO').
+    Suporta filtros por ?local=... e ?tipo=... na URL.
+    """
+    serializer_class = SerializadorObjeto
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # 1. Busca apenas objetos ativos
+        queryset = Objeto.objects.filter(status='ATIVO')
+
+        # 2. Verifica se o mobile enviou filtros
+        local = self.request.query_params.get('local')
+        tipo = self.request.query_params.get('tipo')
+        
+        # 3. Aplica os filtros se existirem
+        if local:
+            queryset = queryset.filter(local=local)
+        if tipo:
+            queryset = queryset.filter(tipo=tipo)
+
+        # 4. Retorna ordenado pelo mais recente
+        return queryset.order_by('-data_encontro')
+
+class APIListarMeusObjetos(ListAPIView):
+    """
+    Lista APENAS os objetos criados pelo usuário logado.
+    Usado na tela 'Meus Itens' do aplicativo.
+    """
+    serializer_class = SerializadorObjeto
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtra pelo dono (usuário do token)
+        return Objeto.objects.filter(dono=self.request.user).order_by('-data_encontro')
+
+class APICriarObjeto(CreateAPIView):
+    """
+    Cadastra um novo objeto via JSON.
+    Define automaticamente o dono como o usuário logado.
+    """
+    serializer_class = SerializadorObjeto
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Salva o objeto preenchendo o campo 'dono' automaticamente
+        serializer.save(dono=self.request.user)
+
+class APIEditarObjeto(RetrieveUpdateAPIView):
+    """
+    Permite ver detalhes (GET) e atualizar dados (PUT/PATCH) de um objeto.
+    Segurança: Só permite se o objeto pertencer ao usuário.
+    """
+    serializer_class = SerializadorObjeto
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Garante que o usuário só pode editar os seus próprios itens
+        return Objeto.objects.filter(dono=self.request.user)
+
+class APIDeletarObjeto(DestroyAPIView):
+    """
+    Deleta um objeto do banco de dados.
+    Segurança: Só permite se o objeto pertencer ao usuário.
+    """
+    serializer_class = SerializadorObjeto
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Garante que o usuário só pode deletar os seus próprios itens
+        return Objeto.objects.filter(dono=self.request.user)
+
+class APIAlternarStatus(APIView):
+    """
+    Endpoint personalizado para alternar entre 'ATIVO' e 'DEVOLVIDO'.
+    Funciona como um interruptor (toggle).
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        # Busca o objeto ou retorna 404 se não existir
+        objeto = get_object_or_404(Objeto, pk=pk)
+        
+        # Verificação de segurança manual: É o dono?
+        if objeto.dono != request.user:
+            return Response(
+                {'erro': 'Você não tem permissão para alterar este item.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        # Lógica de alternância (Toggle)
+        if objeto.status == 'ATIVO':
+            objeto.status = 'DEVOLVIDO'
+        else:
+            objeto.status = 'ATIVO'
+            
+        objeto.save()
+        
+        # Retorna o novo estado para o App atualizar a tela
+        return Response({
+            'novo_status': objeto.status, 
+            'status_display': objeto.get_status_display()
+        })

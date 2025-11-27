@@ -1,20 +1,30 @@
 # core/objetos/tests.py
+import os
+from datetime import date, timedelta
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
-from datetime import date, timedelta
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+# Imports necessários para testar a API
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 
+# Imports do projeto
 from .models import Objeto
 from .forms import FormularioObjeto
 
+# ==============================================================================
+# 1. TESTES DE MODELO (BANCO DE DADOS)
+# ==============================================================================
+
 class TestesModelObjeto(TestCase):
     """
-    Testes Unitários: Lógica do Banco de Dados.
+    Testa a lógica interna do banco de dados (sem envolver navegador ou views).
     """
     def setUp(self):
+        # Cria um usuário e um objeto básico para usar nos testes
         self.user = User.objects.create_user(username='teste', password='123')
         self.objeto = Objeto.objects.create(
             dono=self.user,
@@ -27,76 +37,94 @@ class TestesModelObjeto(TestCase):
         )
 
     def test_criacao_objeto(self):
-        """Valido se os campos foram salvos corretamente."""
+        """Verifica se os dados foram salvos corretamente no banco."""
         self.assertEqual(self.objeto.descricao, "Carteira de Couro")
 
     def test_calculo_dias_custodia(self):
-        """Valido o cálculo de dias."""
+        """Verifica se o método que calcula dias passados está correto."""
+        # Se foi encontrado há 5 dias, o resultado deve ser 5
         self.assertEqual(self.objeto.dias_em_custodia(), 5)
+
+
+# ==============================================================================
+# 2. TESTES DAS VIEWS WEB (INTERFACE HTML)
+# ==============================================================================
 
 class TestesViewListarObjetos(TestCase):
     """
-    Testes de Integração (Web): Listagem e Filtros.
+    Testa a View 'ListarObjetos' (Página Inicial Pública).
     """
     def setUp(self):
         self.user = User.objects.create_user(username='teste', password='123')
-        self.client.force_login(self.user)
+        self.client.force_login(self.user) # Login obrigatório
         self.url = reverse('listar_objetos')
         
-        # Crio dois objetos em locais diferentes para testar o filtro
-        Objeto.objects.create(
-            dono=self.user,
-            descricao="Item Bloco A",
-            local="BLOCO_A", # Alvo do filtro
-            tipo="OUTRO",
-            situacao="ACHADO",
-            status="ATIVO"
-        )
-        Objeto.objects.create(
-            dono=self.user,
-            descricao="Item Bloco B",
-            local="BLOCO_B", # Não deve aparecer no filtro
-            tipo="OUTRO",
-            situacao="ACHADO",
-            status="ATIVO"
-        )
+        # Cria dois objetos: um no Bloco A e outro no Bloco B
+        Objeto.objects.create(dono=self.user, descricao="Item A", local="BLOCO_A", situacao="ACHADO")
+        Objeto.objects.create(dono=self.user, descricao="Item B", local="BLOCO_B", situacao="ACHADO")
 
-    def test_get_todos(self):
-        """Acesso a lista sem filtros e verifico se aparecem os dois itens."""
+    def test_exibir_todos(self):
+        """Sem filtros, deve mostrar os 2 itens."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        # Como ambos são 'ACHADO', devem estar na lista de achados
         self.assertEqual(len(response.context['achados']), 2)
 
-    def test_filtros_funcionais(self):
-        """
-        Simulo o uso do filtro de LOCAL na URL.
-        Espero que a lista retorne apenas o item do BLOCO_A.
-        """
-        # Faço a requisição passando ?local=BLOCO_A
+    def test_filtro_local(self):
+        """Ao filtrar por BLOCO_A, só deve aparecer 1 item."""
         response = self.client.get(self.url, {'local': 'BLOCO_A'})
-        
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['achados']), 1)
+        self.assertEqual(response.context['achados'][0].descricao, "Item A")
+
+
+class TestesViewListarMeusObjetos(TestCase):
+    """
+    Testa a View 'ListarMeusObjetos' (Gerenciamento do Usuário).
+    """
+    def setUp(self):
+        self.meu_usuario = User.objects.create_user(username='eu', password='123')
+        self.outro_usuario = User.objects.create_user(username='outro', password='123')
         
-        # A lista de achados deve ter apenas 1 item (o do Bloco A)
-        achados = response.context['achados']
-        self.assertEqual(len(achados), 1)
-        self.assertEqual(achados[0].descricao, "Item Bloco A")
+        # Cria um item para cada usuário
+        Objeto.objects.create(dono=self.meu_usuario, descricao="Meu Item", local="BLOCO_A")
+        Objeto.objects.create(dono=self.outro_usuario, descricao="Item do Outro", local="BLOCO_A")
+        
+        self.url = reverse('meus_objetos')
+
+    def test_ver_apenas_meus_itens(self):
+        """Eu só devo ver o 'Meu Item' na lista."""
+        self.client.force_login(self.meu_usuario)
+        response = self.client.get(self.url)
+        
+        objetos_na_tela = response.context['objetos']
+        self.assertEqual(len(objetos_na_tela), 1)
+        self.assertEqual(objetos_na_tela[0].descricao, "Meu Item")
+
 
 class TestesViewCriarObjeto(TestCase):
     """
-    Testes de Integração (Web): Criação.
+    Testa a View 'CriarObjeto'.
     """
     def setUp(self):
         self.user = User.objects.create_user(username='teste', password='123')
         self.client.force_login(self.user)
         self.url = reverse('criar_objeto')
 
-    def test_post_criar(self):
-        """Simulo o envio do formulário de cadastro."""
+    def test_get_formulario(self):
+        """
+        Verifica se a página carrega (GET) e se entrega o formulário correto no contexto.
+        """
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        
+        # Verifica se 'form' existe e é uma instância de FormularioObjeto
+        self.assertIsInstance(response.context.get('form'), FormularioObjeto)
+
+    def test_post_criar_sucesso(self):
+        """Envia o formulário e verifica se salvou e redirecionou."""
         dados = {
             'descricao': 'Notebook Dell',
-            'local': 'BIBLIOTECA',
+            'local': 'BLOCO_A',
             'tipo': 'ELETRONICOS',
             'situacao': 'PERDIDO',
             'status': 'ATIVO',
@@ -104,91 +132,238 @@ class TestesViewCriarObjeto(TestCase):
             'contato': '99 9999-9999'
         }
         response = self.client.post(self.url, dados)
-        self.assertEqual(response.status_code, 302) # Redirecionou
+        
+        # Verifica se redirecionou para a lista (código 302) e para a URL correta
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('listar_objetos'))
+        
+        # Confirma que salvou no banco
         self.assertEqual(Objeto.objects.count(), 1)
+        self.assertEqual(Objeto.objects.first().descricao, 'Notebook Dell')
+
 
 class TestesViewEditarObjeto(TestCase):
     """
-    Testes de Integração (Web): Edição de Objetos.
-    Aqui testo se consigo alterar dados e se a segurança (apenas dono) funciona.
+    Testa a View 'EditarObjeto'.
     """
     def setUp(self):
-        self.user = User.objects.create_user(username='dono', password='123')
-        self.outro_user = User.objects.create_user(username='intruso', password='123')
-        
-        # Crio um objeto pertencente ao usuário 'dono'
-        self.objeto = Objeto.objects.create(
-            dono=self.user,
-            descricao="Descrição Original",
-            local="BLOCO_A",
-            tipo="OUTRO",
-            situacao="ACHADO",
-            status="ATIVO",
-            data_encontro=date.today()
-        )
+        self.dono = User.objects.create_user(username='dono', password='123')
+        self.intruso = User.objects.create_user(username='intruso', password='123')
+        self.objeto = Objeto.objects.create(dono=self.dono, descricao="Original", local="BLOCO_A")
         self.url = reverse('editar_objeto', args=[self.objeto.id])
 
-    def test_edicao_pelo_dono(self):
+    def test_get_formulario_edicao(self):
         """
-        Eu logo como o dono e tento alterar a descrição do item.
-        Deve funcionar e salvar no banco.
+        Verifica se a página de edição carrega com o formulário correto.
         """
-        self.client.force_login(self.user)
+        self.client.force_login(self.dono)
+        response = self.client.get(self.url)
         
-        # Dados novos para edição
-        dados_editados = {
-            'descricao': 'Descrição Alterada', # Mudança aqui
-            'local': 'BLOCO_B',                # Mudança aqui
+        self.assertEqual(response.status_code, 200)
+        
+        # Verifica se o formulário passado é do tipo correto
+        self.assertIsInstance(response.context.get('form'), FormularioObjeto)
+        # Opcional: Verifica se o formulário veio preenchido com os dados do objeto
+        self.assertEqual(response.context['form'].instance, self.objeto)
+
+    def test_post_dono_edita_sucesso(self):
+        """O dono altera a descrição com sucesso."""
+        self.client.force_login(self.dono)
+        dados = {
+            'descricao': 'Editado',
+            'local': 'BLOCO_A',
             'tipo': 'OUTRO',
             'situacao': 'ACHADO',
             'status': 'ATIVO',
-            'data_encontro': date.today(),
-            'contato': 'novo contato'
+            'data_encontro': date.today()
         }
+        response = self.client.post(self.url, dados)
         
-        response = self.client.post(self.url, dados_editados)
+        # Verifica redirecionamento para 'meus_objetos'
+        self.assertRedirects(response, reverse('meus_objetos'))
         
-        # Verifica redirecionamento para 'meus_objetos' (302)
-        self.assertEqual(response.status_code, 302)
-        
-        # Recarrega o objeto do banco e verifica se mudou
         self.objeto.refresh_from_db()
-        self.assertEqual(self.objeto.descricao, 'Descrição Alterada')
-        self.assertEqual(self.objeto.local, 'BLOCO_B')
+        self.assertEqual(self.objeto.descricao, 'Editado')
 
-    def test_tentativa_edicao_por_outro_usuario(self):
-        """
-        Eu logo como um 'intruso' e tento editar o item do 'dono'.
-        O sistema deve bloquear (Erro 404, pois o objeto não existe para mim).
-        """
-        self.client.force_login(self.outro_user)
-        
-        # Tenta acessar a página de edição (GET)
+    def test_intruso_nao_pode_editar(self):
+        """Outro usuário recebe erro 404 ao tentar editar."""
+        self.client.force_login(self.intruso)
         response = self.client.get(self.url)
-        
-        # Como filtramos get_queryset(dono=request.user), o Django retorna 404 Not Found
         self.assertEqual(response.status_code, 404)
 
-class TestesAPIObjetos(APITestCase):
+
+class TestesViewDeletarObjeto(TestCase):
     """
-    Testes de API (Mobile).
+    Testa a View 'DeletarObjeto'.
     """
     def setUp(self):
-        self.user = User.objects.create_user(username='apiuser', password='123')
+        self.dono = User.objects.create_user(username='dono', password='123')
+        self.objeto = Objeto.objects.create(dono=self.dono, descricao="Lixo", local="BLOCO_A")
+        self.url = reverse('deletar_objeto', args=[self.objeto.id])
+
+    def test_dono_pode_deletar(self):
+        """O dono confirma a exclusão e o item some."""
+        self.client.force_login(self.dono)
+        response = self.client.post(self.url) # POST confirma deleção
+        
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('listar_objetos'))
+        self.assertEqual(Objeto.objects.count(), 0)
+
+
+class TestesViewAlternarStatusAjax(TestCase):
+    """
+    Testa a View AJAX 'alternar_status_ajax' (Botão de Devolvido).
+    """
+    def setUp(self):
+        self.dono = User.objects.create_user(username='dono', password='123')
+        self.objeto = Objeto.objects.create(dono=self.dono, status="ATIVO", local="BLOCO_A")
+        self.url = reverse('alternar_status_ajax', args=[self.objeto.id])
+
+    def test_ajax_alternar(self):
+        """Clica no botão (POST) e status muda para DEVOLVIDO."""
+        self.client.force_login(self.dono)
+        response = self.client.post(self.url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['novo_status'], 'DEVOLVIDO')
+        
+        self.objeto.refresh_from_db()
+        self.assertEqual(self.objeto.status, 'DEVOLVIDO')
+
+
+class TestesViewFotoObjeto(TestCase):
+    """
+    Testa a View 'FotoObjeto' (Download seguro de imagens).
+    """
+    def setUp(self):
+        self.user = User.objects.create_user(username='foto_user', password='123')
+        # Cria uma imagem falsa na memória (GIF de 1px)
+        img = SimpleUploadedFile('teste.gif', b'GIF89a...', content_type='image/gif')
+        self.objeto = Objeto.objects.create(dono=self.user, descricao="Com Foto", local="BLOCO_A", foto=img)
+        self.nome_arquivo = os.path.basename(self.objeto.foto.name)
+
+    def tearDown(self):
+        # Limpa o arquivo físico após o teste
+        if self.objeto.foto:
+            self.objeto.foto.delete()
+
+    def test_acesso_foto(self):
+        """Se o arquivo existe, deve retornar status 200."""
+        url = reverse('foto-objeto', args=[self.nome_arquivo])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+
+# ==============================================================================
+# 3. TESTES DAS VIEWS API (MOBILE)
+# ==============================================================================
+
+class TestesAPIListarObjetos(APITestCase):
+    """Testa a View da API: Listagem Pública."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
         self.token = Token.objects.create(user=self.user)
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
-        self.url = reverse('api-criar-objeto')
+        # Cria item
+        Objeto.objects.create(dono=self.user, descricao="Celular", local="BLOCO_A", status="ATIVO")
 
-    def test_api_criar_objeto(self):
-        """Testa o cadastro via JSON."""
+    def test_api_listar(self):
+        """Deve retornar a lista em JSON."""
+        url = reverse('api-listar-objetos')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+
+class TestesAPIListarMeusObjetos(APITestCase):
+    """Testa a View da API: Meus Objetos."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        
+        Objeto.objects.create(dono=self.user, descricao="Meu", local="BLOCO_A") # Meu
+        
+        outro = User.objects.create_user(username='outro', password='123')
+        Objeto.objects.create(dono=outro, descricao="Outro", local="BLOCO_A") # Não é meu
+
+    def test_api_meus_itens(self):
+        """Deve retornar apenas o item 'Meu'."""
+        url = reverse('api-meus-objetos')
+        response = self.client.get(url)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['descricao'], "Meu")
+
+
+class TestesAPICriarObjeto(APITestCase):
+    """Testa a View da API: Criação."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_api_criar(self):
+        """Envia JSON e verifica se criou no banco."""
+        url = reverse('api-criar-objeto')
         dados = {
-            'descricao': 'Celular Samsung',
-            'local': 'BLOCO_C',
-            'tipo': 'ELETRONICOS',
+            'descricao': 'Item API',
+            'local': 'BLOCO_A',
+            'tipo': 'OUTRO',
             'situacao': 'ACHADO',
-            'status': 'ATIVO',
-            'data_encontro': date.today(),
-            'contato': 'Sem contato'
+            'data_encontro': '2023-01-01'
         }
-        response = self.client.post(self.url, dados, format='json')
+        response = self.client.post(url, dados)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Objeto.objects.filter(descricao='Item API').exists())
+
+
+class TestesAPIEditarObjeto(APITestCase):
+    """Testa a View da API: Edição."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.objeto = Objeto.objects.create(dono=self.user, descricao="Antigo", local="BLOCO_A")
+
+    def test_api_editar(self):
+        """Envia PATCH para alterar descrição."""
+        url = reverse('api-editar-objeto', args=[self.objeto.id])
+        response = self.client.patch(url, {'descricao': 'Novo Nome'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        self.objeto.refresh_from_db()
+        self.assertEqual(self.objeto.descricao, 'Novo Nome')
+
+
+class TestesAPIDeletarObjeto(APITestCase):
+    """Testa a View da API: Deleção."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.objeto = Objeto.objects.create(dono=self.user, local="BLOCO_A")
+
+    def test_api_deletar(self):
+        """Envia DELETE e verifica se sumiu."""
+        url = reverse('api-deletar-objeto', args=[self.objeto.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Objeto.objects.count(), 0)
+
+
+class TestesAPIAlternarStatus(APITestCase):
+    """Testa a View da API: Alternar Status."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.objeto = Objeto.objects.create(dono=self.user, status="ATIVO", local="BLOCO_A")
+
+    def test_api_status_toggle(self):
+        """POST deve mudar de ATIVO para DEVOLVIDO."""
+        url = reverse('api-alternar-status', args=[self.objeto.id])
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['novo_status'], 'DEVOLVIDO')
