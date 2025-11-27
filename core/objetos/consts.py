@@ -9,6 +9,8 @@ LOCAL_CHOICES = [
     ('BLOCO_F', 'Bloco F'),
     ('BLOCO_G', 'Bloco G'),
     ('BLOCO_H', 'Bloco H'),
+    ('BLOCO_I', 'Bloco I'),
+    ('BLOCO_J', 'Bloco J'),
 
     # Blocos Romanos (I ao IV)
     ('BLOCO_I', 'Bloco I'),

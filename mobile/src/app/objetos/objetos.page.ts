@@ -30,7 +30,6 @@ import { DetalheObjetoComponent } from './detalhe-objeto/detalhe-objeto.componen
     CommonModule, FormsModule, IonSegment, IonSegmentButton, IonBadge,
     IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCardContent,
     IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel,
-    DetalheObjetoComponent
   ],
   providers: [Storage]
 })

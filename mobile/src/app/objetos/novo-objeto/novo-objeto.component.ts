@@ -65,6 +65,8 @@ export class NovoObjetoComponent implements OnInit {
     { valor: 'BLOCO_F', nome: 'Bloco F' },
     { valor: 'BLOCO_G', nome: 'Bloco G' },
     { valor: 'BLOCO_H', nome: 'Bloco H' },
+    { valor: 'BLOCO_I', nome: 'Bloco I' },
+    { valor: 'BLOCO_J', nome: 'Bloco J' },
     // Blocos Romanos
     { valor: 'BLOCO_I', nome: 'Bloco I' },
     { valor: 'BLOCO_II', nome: 'Bloco II' },
