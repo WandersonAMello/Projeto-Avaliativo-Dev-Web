@@ -1,2 +1,22 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+
+:root {
+  /* Identidade UFT */
+  --ion-color-primary: #006633; /* Verde UFT */
+  --ion-color-primary-rgb: 0, 102, 51;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #005a2d;
+  --ion-color-primary-tint: #1a7547;
+
+  --ion-color-secondary: #FFCC00; /* Amarelo UFT */
+  --ion-color-secondary-rgb: 255, 204, 0;
+  --ion-color-secondary-contrast: #000000;
+  --ion-color-secondary-contrast-rgb: 0, 0, 0;
+  --ion-color-secondary-shade: #e0b300;
+  --ion-color-secondary-tint: #ffd11a;
+
+  /* Fundo levemente cinza para destacar os Cards (igual ao Web) */
+  --ion-background-color: #f4f5f8;
+}

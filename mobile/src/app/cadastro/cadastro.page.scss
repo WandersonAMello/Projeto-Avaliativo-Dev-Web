@@ -1,0 +1,52 @@
+/* Variáveis da Identidade Visual (Cópia do Login) */
+$uft-green: #006633;
+$uft-yellow: #FFCC00;
+$bg-light: #f8f9fa;
+
+.uft-toolbar {
+  --background: #{$uft-green};
+  --color: white;
+}
+
+.bg-light {
+  --background: #{$bg-light};
+}
+
+.cadastro-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding: 20px;
+}
+
+.uft-green {
+  color: $uft-green;
+  font-weight: 700;
+}
+
+.cadastro-list {
+  background: transparent;
+}
+
+.input-item {
+  --background: white;
+  --border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  --highlight-color-focused: #{$uft-green};
+  /* Fix para modo escuro */
+  --color: #333333;
+}
+
+.btn-uft {
+  --background: #{$uft-green};
+  --background-hover: #004d26;
+  --border-radius: 8px;
+  font-weight: bold;
+  --box-shadow: 0 4px 6px rgba(0, 102, 51, 0.3);
+}
+
+.text-muted {
+  color: #6c757d;
+}

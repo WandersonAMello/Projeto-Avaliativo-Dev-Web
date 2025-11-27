@@ -14,4 +14,8 @@ export const routes: Routes = [
     path: 'objetos',
     loadComponent: () => import('./objetos/objetos.page').then( m => m.ObjetosPage)
   },
+  {
+    path: 'cadastro',
+    loadComponent: () => import('./cadastro/cadastro.page').then( m => m.CadastroPage)
+  },
 ];

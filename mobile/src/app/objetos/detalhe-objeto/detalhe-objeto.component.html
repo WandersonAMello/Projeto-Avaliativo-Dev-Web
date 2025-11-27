@@ -1,0 +1,80 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title>Detalhes do Item</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="fechar()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="bg-light">
+
+  <div class="hero-image">
+    @if (fotoUrl) {
+      <ion-img [src]="fotoUrl"></ion-img>
+    } @else {
+      <div class="no-photo">
+        <ion-icon name="images-outline"></ion-icon>
+        <p>Sem foto disponível</p>
+      </div>
+    }
+    <ion-badge [color]="objeto.situacao === 'ACHADO' ? 'success' : 'danger'" class="status-float">
+      {{ objeto.situacao }}
+    </ion-badge>
+  </div>
+
+  <div class="ion-padding">
+    
+    <h1 class="titulo">{{ objeto.descricao }}</h1>
+    
+    <div class="tags ion-margin-bottom">
+      <ion-badge color="medium" mode="ios">{{ objeto.tipo }}</ion-badge>
+      <ion-badge color="warning" mode="ios" *ngIf="objeto.status === 'DEVOLVIDO'" class="ion-margin-start">
+        DEVOLVIDO
+      </ion-badge>
+    </div>
+
+    <ion-list lines="none" class="info-list">
+      
+      <ion-item>
+        <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Local</h3>
+          <p>{{ objeto.local }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Data do Registro</h3>
+          <p>{{ objeto.data_encontro | date:'dd/MM/yyyy' }} ({{ diasCustodia }} dias atrás)</p>
+        </ion-label>
+      </ion-item>
+
+      @if (objeto.dono_username) {
+        <ion-item>
+          <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <h3>Registrado por</h3>
+            <p>{{ objeto.dono_username }}</p>
+          </ion-label>
+        </ion-item>
+      }
+
+    </ion-list>
+
+  </div>
+
+</ion-content>
+
+<ion-footer class="ion-no-border" *ngIf="objeto.contato">
+  <ion-toolbar class="ion-padding">
+    <ion-button expand="block" color="success" (click)="abrirWhatsApp()" size="large" style="font-weight: bold;">
+      <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+      Entrar em Contato
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

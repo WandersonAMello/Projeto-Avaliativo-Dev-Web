@@ -1,0 +1,52 @@
+.hero-image {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  ion-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .no-photo {
+    text-align: center;
+    color: #888;
+    ion-icon { font-size: 64px; }
+  }
+
+  .status-float {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    font-size: 14px;
+    padding: 6px 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+}
+
+.titulo {
+  font-weight: 800;
+  color: var(--ion-color-dark);
+  margin-top: 0;
+}
+
+.info-list {
+  background: transparent;
+  
+  ion-item {
+    --background: white;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+  }
+}
+
+.bg-light {
+  --background: #f8f9fa;
+}

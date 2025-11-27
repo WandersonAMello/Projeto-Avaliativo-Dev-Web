@@ -1,0 +1,72 @@
+/* Fundo cinza claro para a lista destacar-se */
+.custom-list {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Estilo dos Botões de Seleção (Cards) */
+.card-opcao {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  ion-icon {
+    font-size: 32px;
+    margin-bottom: 5px;
+    opacity: 0.6;
+  }
+  
+  p {
+    margin: 0;
+    font-weight: bold;
+    color: #666;
+  }
+
+  /* Estado Selecionado - ACHADO (Verde) */
+  &.selected-achado {
+    border-color: var(--ion-color-success);
+    background-color: #f0fdf4; /* Verde muito claro */
+    
+    ion-icon { opacity: 1; transform: scale(1.1); }
+    p { color: var(--ion-color-success); }
+  }
+
+  /* Estado Selecionado - PERDIDO (Vermelho) */
+  &.selected-perdido {
+    border-color: var(--ion-color-danger);
+    background-color: #fef2f2; /* Vermelho muito claro */
+    
+    ion-icon { opacity: 1; transform: scale(1.1); }
+    p { color: var(--ion-color-danger); }
+  }
+}
+
+/* Área de Preview da Foto */
+.preview-container {
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px;
+  background: white;
+
+  img {
+    max-height: 250px;
+    width: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    display: block;
+  }
+}
+
+.text-muted {
+  color: #888;
+}
+
+.bg-light {
+  --background: #f8f9fa;
+}

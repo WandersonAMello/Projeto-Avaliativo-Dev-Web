@@ -1,0 +1,88 @@
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar class="uft-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="voltarLogin()" color="light">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title class="ion-text-center text-white">
+      Nova Conta
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button disabled><ion-icon></ion-icon></ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="bg-light">
+  
+  <div class="cadastro-container">
+    
+    <div class="ion-text-center ion-margin-bottom">
+      <h2 class="uft-green fw-bold">Junte-se a nós</h2>
+      <p class="text-muted">Preencha os dados para acessar</p>
+    </div>
+
+    <form (submit)="cadastrarUsuario()">
+      <ion-list lines="none" class="cadastro-list">
+        
+        <ion-item class="input-item">
+          <ion-input 
+            label="Nome de Usuário" 
+            labelPlacement="floating" 
+            type="text" 
+            [(ngModel)]="instancia.username" 
+            name="username"
+            required>
+          </ion-input>
+        </ion-item>
+
+        <ion-item class="input-item">
+          <ion-input 
+            label="E-mail" 
+            labelPlacement="floating" 
+            type="email" 
+            [(ngModel)]="instancia.email" 
+            name="email"
+            required>
+          </ion-input>
+        </ion-item>
+
+        <ion-item class="input-item">
+          <ion-input 
+            label="Senha" 
+            labelPlacement="floating" 
+            type="password" 
+            [(ngModel)]="instancia.password" 
+            name="password"
+            required>
+          </ion-input>
+        </ion-item>
+
+        <ion-item class="input-item">
+          <ion-input 
+            label="Confirmar Senha" 
+            labelPlacement="floating" 
+            type="password" 
+            [(ngModel)]="instancia.confirm_password" 
+            name="confirm_password"
+            required>
+          </ion-input>
+        </ion-item>
+
+      </ion-list>
+
+      <div class="ion-margin-top ion-padding-horizontal">
+        <ion-button expand="block" (click)="cadastrarUsuario()" class="btn-uft" size="large">
+          <ion-icon slot="start" name="person-add-outline"></ion-icon>
+          Cadastrar
+        </ion-button>
+        
+        <ion-button expand="block" fill="clear" (click)="voltarLogin()" class="ion-margin-top text-muted">
+          Já tenho uma conta
+        </ion-button>
+      </div>
+
+    </form>
+  </div>
+</ion-content>

@@ -1,4 +1,4 @@
-<ion-header [translucent]="true">
+<ion-header [translucent]="true" class="ion-no-border">
   <ion-toolbar color="primary">
     <ion-title>Achados & Perdidos</ion-title>
     <ion-buttons slot="end">
@@ -7,51 +7,104 @@
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
+
+  <ion-toolbar color="primary">
+    <ion-segment [value]="segmentoSelecionado" (ionChange)="trocarSegmento($event)" color="light">
+      <ion-segment-button value="todos">
+        <ion-label>Mural</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="meus">
+        <ion-label>Meus Itens</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding-top">
+<ion-content [fullscreen]="true" color="light">
 
-  @if (lista_objetos.length === 0) {
-    <div class="ion-text-center ion-padding">
-      <p>Nenhum objeto encontrado.</p>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (isLoading) {
+    <ion-list>
+      @for (i of [1, 2, 3]; track i) {
+        <ion-card>
+          <ion-skeleton-text animated style="width: 100%; height: 180px;"></ion-skeleton-text>
+          <ion-card-header>
+            <ion-skeleton-text animated style="width: 50%"></ion-skeleton-text>
+            <ion-skeleton-text animated style="width: 80%"></ion-skeleton-text>
+          </ion-card-header>
+        </ion-card>
+      }
+    </ion-list>
+  }
+
+  @if (!isLoading && lista_objetos.length === 0) {
+    <div class="empty-state">
+      <div class="icon-circle">
+        <ion-icon name="images-outline"></ion-icon>
+      </div>
+      <h3>Nenhum registro</h3>
+      <p>Não há itens nesta categoria no momento.</p>
     </div>
   }
 
-  <ion-list>
-    @for (item of lista_objetos; track item.id) {
-      <ion-item>
-        
-        @if (item.foto) {
-          <ion-thumbnail slot="start">
-            <ion-img [src]="item.foto" alt="Foto do objeto"></ion-img>
-          </ion-thumbnail>
-        }
-
-        <ion-label>
-          <h2>{{ item.descricao }}</h2>
-          <p>
-            <ion-icon name="location-outline" style="vertical-align: middle;"></ion-icon> 
-            {{ item.local }}
-          </p>
-          <p>
-            <ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon>
-            {{ item.data_encontro | date:'dd/MM/yyyy' }} 
+  @if (!isLoading) {
+    <div class="card-grid">
+      @for (item of lista_objetos; track item.id) {
+        <ion-card class="objeto-cardclickable" (click)="verDetalhes(item)">
+          
+          <div class="img-wrapper">
+            @if (item.foto) {
+              <img [src]="item.foto" alt="Foto do objeto" />
+            } @else {
+              <div class="no-photo">
+                <ion-icon name="images-outline"></ion-icon>
+                <span>Sem foto</span>
+              </div>
+            }
             
-            <span *ngIf="item.dias_custodia !== undefined">
-              ({{ item.dias_custodia }} dias)
-            </span>
-          </p>
-        </ion-label>
+            <div class="status-badge" [class.perdido]="item.situacao === 'PERDIDO'">
+              {{ item.situacao }}
+            </div>
+          </div>
 
-        <ion-button fill="clear" color="danger" slot="end" (click)="excluir(item.id)">
-          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-      </ion-item>
-    }
-  </ion-list>
+          <ion-card-header>
+            <div class="meta-info">
+              <ion-badge color="medium" mode="ios">{{ item.tipo }}</ion-badge>
+              <span *ngIf="item.status === 'DEVOLVIDO'" class="devolvido-tag">DEVOLVIDO</span>
+            </div>
+            <ion-card-title>{{ item.descricao }}</ion-card-title>
+            <ion-card-subtitle>
+              <ion-icon name="location-outline"></ion-icon> {{ item.local }}
+            </ion-card-subtitle>
+          </ion-card-header>
+
+          <ion-card-content>
+            <div class="info-row">
+              <ion-icon name="time-outline"></ion-icon>
+              <span>{{ item.data_encontro | date:'dd/MM/yyyy' }}</span>
+            </div>
+            
+            @if (segmentoSelecionado === 'meus') {
+              <div class="action-buttons">
+                <ion-button fill="outline" size="small" (click)="abrirModal(item)">
+                  Editar
+                </ion-button>
+                <ion-button fill="outline" color="danger" size="small" (click)="confirmarExclusao(item.id)">
+                  Excluir
+                </ion-button>
+              </div>
+            }
+          </ion-card-content>
+        </ion-card>
+      }
+    </div>
+  }
 
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="novoRegistro()">
+    <ion-fab-button color="secondary" (click)="abrirModal(null)">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>

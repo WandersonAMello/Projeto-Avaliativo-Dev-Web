@@ -1,28 +1,36 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+// Importação dos componentes visuais do Ionic (Standalone)
 import { 
-  IonContent, IonHeader, IonTitle, IonToolbar, LoadingController, NavController, ToastController, 
-  IonButtons, IonButton, IonIcon, IonList, IonItem, IonThumbnail, IonLabel, IonFab, IonFabButton, 
-  IonImg, ModalController, AlertController 
+  IonContent, IonHeader, IonTitle, IonToolbar, NavController, ToastController, 
+  IonButtons, IonButton, IonIcon, IonList, IonFab, IonFabButton, 
+  ModalController, AlertController, IonSegment, IonSegmentButton, IonBadge,
+  IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCardContent,
+  IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel
 } from '@ionic/angular/standalone';
 import { Storage } from '@ionic/storage-angular';
-import { CapacitorHttp, HttpOptions, HttpResponse } from '@capacitor/core';
 import { addIcons } from 'ionicons';
-import { add, logOutOutline, trashOutline, timeOutline, locationOutline } from 'ionicons/icons';
+// Importação dos ícones usados no HTML
+import { add, logOutOutline, trashOutline, timeOutline, locationOutline, createOutline, refreshOutline, imagesOutline } from 'ionicons/icons';
 
 import { Usuario } from '../login/usuario.model';
 import { NovoObjetoComponent } from './novo-objeto/novo-objeto.component';
-
+import { ObjetoService } from './objeto.service';
+import { DetalheObjetoComponent } from './detalhe-objeto/detalhe-objeto.component';
 @Component({
   standalone: true,
   selector: 'app-objetos',
   templateUrl: './objetos.page.html',
   styleUrls: ['./objetos.page.scss'],
+  // Lista de componentes que podem ser usados no HTML
   imports: [
-    IonFab, IonFabButton, IonImg, IonThumbnail, IonLabel, IonItem, IonList, 
-    IonIcon, IonButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, 
-    CommonModule, FormsModule
+    IonFab, IonFabButton, IonIcon, IonButton, IonButtons, 
+    IonContent, IonHeader, IonTitle, IonToolbar, IonList,
+    CommonModule, FormsModule, IonSegment, IonSegmentButton, IonBadge,
+    IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCardContent,
+    IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel,
+    DetalheObjetoComponent
   ],
   providers: [Storage]
 })
@@ -30,86 +38,128 @@ export class ObjetosPage implements OnInit {
 
   public usuario: Usuario = new Usuario();
   public lista_objetos: any[] = [];
+  
+  // Controla qual aba está ativa ('todos' ou 'meus')
+  public segmentoSelecionado: string = 'todos';
+  
+  // Controla se o esqueleto de carregamento (skeleton) deve aparecer
+  public isLoading: boolean = true;
 
   constructor(
     public storage: Storage,
+    public service: ObjetoService,
     public controle_toast: ToastController,
     public controle_navegacao: NavController,
-    public controle_carregamento: LoadingController,
     public modalCtrl: ModalController,
     public alertCtrl: AlertController
   ) { 
-    addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline });
+    // Registo dos ícones para serem usados com name="icone"
+    addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline, createOutline, refreshOutline, imagesOutline });
   }
 
   async ngOnInit() {
-    // Verifica se existe registro de configuração para o último usuário autenticado
+    // 1. Inicializa o banco local
     await this.storage.create();
     const registro = await this.storage.get('usuario');
 
+    // 2. Verifica se o usuário está logado
     if(registro) {
       this.usuario = Object.assign(new Usuario(), registro);
-      this.consultarObjetosWeb();
-    }
-    else{
+      // Carrega os dados iniciais mostrando o Skeleton (true)
+      this.carregarDados(true);
+    } else {
+      // Se não tiver usuário, manda pro login
       this.controle_navegacao.navigateRoot('/login');
     }
   }
 
+  // Executado sempre que a tela vai aparecer (bom para atualizar dados ao voltar)
   ionViewWillEnter() {
-    // Garante atualização ao voltar para a tela (se usuário já estiver carregado)
     if (this.usuario && this.usuario.token) {
-        this.consultarObjetosWeb();
+        // Atualiza silenciosamente sem mostrar o Skeleton (false)
+        this.carregarDados(false);
     }
   }
 
-  async consultarObjetosWeb() {
-    // Inicializa interface com efeito de carregamento
-    const loading = await this.controle_carregamento.create({message: 'Pesquisando...', duration: 60000});
-    await loading.present();
-
-    // Define informações do cabeçalho da requisição
-    const options: HttpOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${this.usuario.token}`
-      },
-      url: 'http://127.0.0.1:8000/objetos/api/'
-    };
-
-    CapacitorHttp.get(options)
-      .then(async (resposta: HttpResponse) => {
-        // Verifica se a requisição foi processada com sucesso
-        if(resposta.status == 200) {
-          this.lista_objetos = resposta.data;
-          
-          // Finaliza interface com efeito de carregamento
-          loading.dismiss();
-        }
-        else {
-          // Finaliza e apresenta mensagem de erro
-          loading.dismiss();
-          this.apresenta_mensagem(`Falha ao consultar objetos: código ${resposta.status}`);
-        }
-      })
-      .catch(async (erro: any) => {
-        console.log(erro);
-        loading.dismiss();
-        this.apresenta_mensagem(`Falha ao consultar objetos: código ${erro?.status}`);
-      });
+  // Função chamada ao puxar a tela para baixo (Pull-to-Refresh)
+  handleRefresh(event: any) {
+    this.carregarDados(false).then(() => {
+      // Avisa o componente visual que terminou de carregar
+      event.target.complete();
+    });
   }
 
-  async excluir(id: number) {
+  // Função central para buscar dados da API
+  async carregarDados(usarSkeleton: boolean = false) {
+    if (usarSkeleton) this.isLoading = true;
+
+    try {
+      let resp;
+      
+      // Decide qual endpoint chamar baseado na aba selecionada
+      if (this.segmentoSelecionado === 'todos') {
+        resp = await this.service.listar(); // API pública
+      } else {
+        resp = await this.service.listarMeus(); // API privada
+      }
+
+      if (resp.status === 200) {
+        this.lista_objetos = resp.data;
+      }
+    } catch (erro) {
+      // Falha silenciosa para não incomodar o usuário com popups constantes
+      console.error(erro);
+    } finally {
+      // Remove o Skeleton após um pequeno delay (estético)
+      if (usarSkeleton) {
+        setTimeout(() => this.isLoading = false, 500); 
+      }
+    }
+  }
+
+  // Chamado quando o usuário clica nas abas (Mural / Meus Itens)
+  trocarSegmento(event: any) {
+    this.segmentoSelecionado = event.detail.value;
+    this.lista_objetos = []; // Limpa a lista atual
+    this.carregarDados(true); // Recarrega com efeito de Skeleton
+  }
+
+  //Arbir modal de detalhes do objeto
+  async verDetalhes(item: any) {
+    const modal = await this.modalCtrl.create({
+      component: DetalheObjetoComponent,
+      componentProps: { objeto: item }
+    });
+    await modal.present();
+  }
+
+  // Abre o formulário de cadastro ou edição
+  async abrirModal(itemParaEditar: any = null) {
+    const modal = await this.modalCtrl.create({
+      component: NovoObjetoComponent,
+      componentProps: { objetoEditar: itemParaEditar }, // Passa dados se for edição
+      breakpoints: [0, 0.9, 1], // Efeito de "folha" que sobe
+      initialBreakpoint: 0.9,
+    });
+
+    await modal.present();
+
+    // Espera o modal fechar para ver se precisa atualizar a lista
+    const { data } = await modal.onWillDismiss();
+    if (data) this.carregarDados(false);
+  }
+
+  // Exibe alerta de confirmação antes de excluir
+  async confirmarExclusao(id: number) {
     const alert = await this.alertCtrl.create({
-      header: 'Confirmar',
-      message: 'Deseja realmente excluir este item?',
+      header: 'Excluir Item',
+      message: 'Tem certeza? Esta ação não pode ser desfeita.',
       buttons: [
-        { text: 'Não', role: 'cancel' },
+        { text: 'Cancelar', role: 'cancel' },
         {
-          text: 'Sim, Excluir',
-          handler: async () => {
-             this.excluirObjeto(id);
-          }
+          text: 'Excluir',
+          cssClass: 'alert-button-danger', // Estilo vermelho
+          handler: () => this.excluirObjeto(id) // Chama a exclusão real
         }
       ]
     });
@@ -117,66 +167,33 @@ export class ObjetosPage implements OnInit {
   }
 
   async excluirObjeto(id: number) {
-    // Inicializa interface com efeito de carregamento
-    const loading = await this.controle_carregamento.create({message: 'Excluindo...', duration: 30000});
-    await loading.present();
-
-    const options: HttpOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${this.usuario.token}`
-      },
-      url: `http://127.0.0.1:8000/objetos/api/${id}/`
-    };
-
-    CapacitorHttp.delete(options)
-      .then(async (resposta: HttpResponse) => {
-        // Verifica se a requisição foi processada com sucesso (204 No Content)
-        if(resposta.status == 204) {
-          loading.dismiss();
-        }
-        else {
-          loading.dismiss();
-          this.apresenta_mensagem(`Falha ao excluir o objeto: código ${resposta.status}`);
-        }
-      })
-      .catch(async (erro: any) => {
-        console.log(erro);
-        loading.dismiss();
-        this.apresenta_mensagem(`Falha ao excluir o objeto: código ${erro?.status}`);
-      })
-      .finally(() => {
-        // Consulta novamente a lista de objetos
-        this.lista_objetos = [];
-        this.consultarObjetosWeb();
-      });
-  }
-
-  async novoRegistro() {
-    const modal = await this.modalCtrl.create({
-      component: NovoObjetoComponent
-    });
-
-    await modal.present();
-
-    // Aguarda o modal fechar para ver se precisa atualizar a lista
-    const { data } = await modal.onWillDismiss();
-    if (data) {
-      this.consultarObjetosWeb();
+    try {
+      const resp = await this.service.remover(id);
+      if (resp.status === 204) {
+        this.apresenta_mensagem('Item excluído.');
+        this.carregarDados(false); // Atualiza a lista
+      } else {
+        this.apresenta_mensagem('Erro ao excluir.');
+      }
+    } catch (erro) {
+      this.apresenta_mensagem('Erro de conexão.');
     }
   }
 
   async logout() {
+    // Limpa dados e volta pro login
     await this.storage.remove('usuario');
+    await this.storage.remove('token');
     this.controle_navegacao.navigateRoot('/login');
   }
 
   async apresenta_mensagem(texto: string) {
-    const mensagem = await this.controle_toast.create({
+    const toast = await this.controle_toast.create({
       message: texto,
-      cssClass: 'ion-text-center',
-      duration: 2000
+      duration: 2000,
+      position: 'bottom',
+      color: 'dark'
     });
-    mensagem.present();
+    toast.present();
   }
 }

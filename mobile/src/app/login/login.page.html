@@ -1,20 +1,66 @@
-<ion-content [fullscreen]="true">
-  <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
-    <h2 class="ion-text-center">Achados & Perdidos</h2>
+<ion-header [translucent]="true" class="ion-no-border">
+  <ion-toolbar class="uft-toolbar">
+    <ion-title class="ion-text-center text-white">
+      Achados & Perdidos
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="bg-light">
+  
+  <div class="login-container">
     
+    <div class="logo-area ion-text-center ion-margin-bottom">
+      <div class="img-container">
+        <img src="assets/brasao-uft.png" alt="Brasão UFT">
+      </div>
+      <h2 class="uft-green fw-bold">Bem-vindo</h2>
+      <p class="text-muted">Universidade Federal do Tocantins</p>
+    </div>
+
     <form (submit)="autenticarUsuario()">
-      <ion-list>
-        <ion-item>
-          <ion-input label="Usuário" type="text" name="usuario" [(ngModel)]="instancia.username"></ion-input>
+      <ion-list lines="none" class="login-list">
+        
+        <ion-item class="input-item">
+          <ion-input 
+            label="Usuário" 
+            labelPlacement="floating" 
+            type="text" 
+            name="usuario" 
+            [(ngModel)]="instancia.username"
+            required>
+          </ion-input>
         </ion-item>
-        <ion-item>
-          <ion-input label="Senha" type="password" name="senha" [(ngModel)]="instancia.password"></ion-input>
+
+        <ion-item class="input-item">
+          <ion-input 
+            label="Senha" 
+            labelPlacement="floating" 
+            type="password" 
+            name="senha" 
+            [(ngModel)]="instancia.password"
+            required>
+          </ion-input>
         </ion-item>
+
       </ion-list>
-      <br>
-      <ion-button expand="block" (click)="autenticarUsuario()" class="ion-text-center">
-        Entrar
-      </ion-button>
+
+      <div class="ion-margin-top ion-padding-horizontal">
+        <ion-button expand="block" (click)="autenticarUsuario()" class="btn-uft" size="large">
+          <ion-icon slot="start" name="log-in-outline"></ion-icon>
+          Entrar
+        </ion-button>
+        
+        <div class="ion-margin-top ion-text-center">
+            <p class="small text-muted mb-2">Ainda não tem acesso?</p>
+            
+            <ion-button expand="block" fill="outline" (click)="irParaCadastro()" class="btn-uft-outline">
+                <ion-icon slot="start" name="person-add-outline"></ion-icon>
+                Criar Nova Conta
+            </ion-button>
+        </div>
+      </div>
+
     </form>
   </div>
 </ion-content>
