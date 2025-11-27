@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Storage } from '@ionic/storage-angular';
 import { environment } from 'src/environments/environment';
 import { firstValueFrom } from 'rxjs';
+import { Platform } from '@ionic/angular/standalone';
 
 @Injectable({
   providedIn: 'root'
@@ -11,12 +12,13 @@ export class ObjetoService {
 
   // URL base definida no environment
   private readonly API_URL = environment.apiUrl + '/objetos/api/';
-  
+
   private _storage: Storage | null = null;
 
   constructor(
     private http: HttpClient,
-    private storage: Storage
+    private storage: Storage,
+    private platform: Platform
   ) {
     this.init();
   }
@@ -29,11 +31,11 @@ export class ObjetoService {
   private async getHeaders(isFormData: boolean = false) {
     const token = await this._storage?.get('token');
     let headers = new HttpHeaders();
-    
+
     if (token) {
       headers = headers.set('Authorization', `Token ${token}`);
     }
-    
+
     return headers;
   }
 
@@ -46,15 +48,17 @@ export class ObjetoService {
     }
 
     // 2. Corrige o IP para o Emulador Android (10.0.2.2)
-    // O Django pode retornar 'localhost' ou '127.0.0.1', o que quebra no Android.
-    if (item.foto && typeof item.foto === 'string') {
-      if (item.foto.includes('localhost')) {
-        item.foto = item.foto.replace('localhost', '10.0.2.2');
-      } else if (item.foto.includes('127.0.0.1')) {
-        item.foto = item.foto.replace('127.0.0.1', '10.0.2.2');
+    if (this.platform.is('capacitor') || this.platform.is('cordova') || this.platform.is('android')) {
+
+      // Lógica para EMULADOR ANDROID (troca localhost por 10.0.2.2)
+      if (item.foto && typeof item.foto === 'string') {
+        if (item.foto.includes('localhost')) {
+          item.foto = item.foto.replace('localhost', '10.0.2.2');
+        } else if (item.foto.includes('127.0.0.1')) {
+          item.foto = item.foto.replace('127.0.0.1', '10.0.2.2');
+        }
       }
     }
-    
     return item;
   }
 

@@ -59,7 +59,7 @@ class ListarObjetos(LoginRequiredMixin, ListView):
         # self.object_list já contém os dados filtrados pelo get_queryset acima
         context['achados'] = self.object_list.filter(situacao='ACHADO')
         context['perdidos'] = self.object_list.filter(situacao='PERDIDO')
-        
+
         context['lista_locais'] = LOCAL_CHOICES
         context['lista_tipos'] = TIPO_CHOICES
         return context
@@ -137,7 +137,7 @@ def alternar_status_ajax(request, pk):
         'novo_status': novo_status,
         'status_display': objeto.get_status_display()
     })
-    
+
 class APIListarObjetos(ListAPIView):
     """
     View para listar instâncias de Objetos (por meio da API REST).
@@ -205,7 +205,7 @@ class APIListarObjetos(ListAPIView):
         # 2. Verifica se o mobile enviou filtros
         local = self.request.query_params.get('local')
         tipo = self.request.query_params.get('tipo')
-        
+
         # 3. Aplica os filtros se existirem
         if local:
             queryset = queryset.filter(local=local)
@@ -278,24 +278,24 @@ class APIAlternarStatus(APIView):
     def post(self, request, pk):
         # Busca o objeto ou retorna 404 se não existir
         objeto = get_object_or_404(Objeto, pk=pk)
-        
+
         # Verificação de segurança manual: É o dono?
         if objeto.dono != request.user:
             return Response(
                 {'erro': 'Você não tem permissão para alterar este item.'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
-            
+
         # Lógica de alternância (Toggle)
         if objeto.status == 'ATIVO':
             objeto.status = 'DEVOLVIDO'
         else:
             objeto.status = 'ATIVO'
-            
+
         objeto.save()
-        
+
         # Retorna o novo estado para o App atualizar a tela
         return Response({
-            'novo_status': objeto.status, 
+            'novo_status': objeto.status,
             'status_display': objeto.get_status_display()
         })

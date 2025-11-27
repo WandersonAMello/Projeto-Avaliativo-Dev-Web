@@ -54,7 +54,10 @@
     <div class="card-grid">
       @for (item of lista_objetos; track item.id) {
         
-        <ion-card class="objeto-card clickable" (click)="verDetalhes(item)">
+        <ion-card class="objeto-card clickable" 
+                  (click)="verDetalhes(item)"
+                  [class.border-achado]="item.situacao === 'ACHADO'"
+                  [class.border-perdido]="item.situacao === 'PERDIDO'">
           
           <div class="img-wrapper">
             @if (item.foto) {
@@ -67,18 +70,18 @@
             }
             
             <div class="status-badge" [class.perdido]="item.situacao === 'PERDIDO'">
-              {{ item.situacao }}
+              {{ item.situacao === 'ACHADO' ? 'ENCONTRADO' : 'PERDIDO' }}
             </div>
           </div>
 
           <ion-card-header>
             <div class="meta-info">
-              <ion-badge color="medium" mode="ios">{{ item.tipo }}</ion-badge>
+              <ion-badge color="medium" mode="ios">{{ item.tipo_legivel || item.tipo }}</ion-badge>
               <span *ngIf="item.status === 'DEVOLVIDO'" class="devolvido-tag">DEVOLVIDO</span>
             </div>
             <ion-card-title>{{ item.descricao }}</ion-card-title>
             <ion-card-subtitle>
-              <ion-icon name="location-outline"></ion-icon> {{ item.local }}
+              <ion-icon name="location-outline"></ion-icon> {{ item.local_legivel || item.local }}
             </ion-card-subtitle>
           </ion-card-header>
 
@@ -86,8 +89,12 @@
             <div class="info-row">
               <ion-icon name="time-outline"></ion-icon>
               <span>{{ item.data_encontro | date:'dd/MM/yyyy' }}</span>
+              
+              <span class="custodia-info" *ngIf="item.dias_custodia !== undefined">
+                 • {{ item.dias_custodia }} dias atrás
+              </span>
             </div>
-
+            
             @if (segmentoSelecionado === 'meus') {
               <div class="action-buttons" (click)="$event.stopPropagation()">
                 <ion-button fill="outline" size="small" (click)="abrirModal(item)">

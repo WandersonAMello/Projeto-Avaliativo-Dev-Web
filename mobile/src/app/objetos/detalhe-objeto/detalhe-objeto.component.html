@@ -16,65 +16,79 @@
       <ion-img [src]="fotoUrl"></ion-img>
     } @else {
       <div class="no-photo">
-        <ion-icon name="images-outline"></ion-icon>
+        <ion-icon name="information-circle-outline"></ion-icon>
         <p>Sem foto disponível</p>
       </div>
     }
+    
     <ion-badge [color]="objeto.situacao === 'ACHADO' ? 'success' : 'danger'" class="status-float">
-      {{ objeto.situacao }}
+      {{ objeto.situacao === 'ACHADO' ? 'ENCONTRADO' : 'PERDIDO' }}
     </ion-badge>
   </div>
 
   <div class="ion-padding">
     
-    <h1 class="titulo">{{ objeto.descricao }}</h1>
-    
-    <div class="tags ion-margin-bottom">
-      <ion-badge color="medium" mode="ios">{{ objeto.tipo }}</ion-badge>
-      <ion-badge color="warning" mode="ios" *ngIf="objeto.status === 'DEVOLVIDO'" class="ion-margin-start">
+    <h1 class="titulo ion-text-center">{{ objeto.descricao }}</h1>
+    <div class="ion-text-center ion-margin-bottom">
+      <ion-badge color="medium" mode="ios">{{ objeto.tipo_legivel || objeto.tipo }}</ion-badge>
+      
+      <ion-badge *ngIf="objeto.status === 'DEVOLVIDO'" color="warning" mode="ios" class="ion-margin-start">
         DEVOLVIDO
       </ion-badge>
     </div>
 
-    <ion-list lines="none" class="info-list">
+    <ion-list lines="full" class="info-list">
       
+      <ion-item>
+        <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Publicado por</h3>
+          <p class="fw-bold">{{ objeto.dono_username || 'Desconhecido' }}</p>
+        </ion-label>
+      </ion-item>
+
       <ion-item>
         <ion-icon name="location-outline" slot="start" color="primary"></ion-icon>
         <ion-label>
           <h3>Local</h3>
-          <p>{{ objeto.local }}</p>
+          <p>{{ objeto.local_legivel || objeto.local }}</p>
         </ion-label>
       </ion-item>
 
       <ion-item>
         <ion-icon name="calendar-outline" slot="start" color="primary"></ion-icon>
         <ion-label>
-          <h3>Data do Registro</h3>
-          <p>{{ objeto.data_encontro | date:'dd/MM/yyyy' }} ({{ diasCustodia }} dias atrás)</p>
+          <h3>Data</h3>
+          <p>{{ objeto.data_encontro | date:'dd/MM/yyyy' }}</p>
         </ion-label>
       </ion-item>
 
-      @if (objeto.dono_username) {
-        <ion-item>
-          <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
-          <ion-label>
-            <h3>Registrado por</h3>
-            <p>{{ objeto.dono_username }}</p>
-          </ion-label>
-        </ion-item>
-      }
+      <ion-item>
+        <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>
+          <h3>Custódia</h3>
+          <p>{{ objeto.dias_custodia }} dias</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item lines="none" class="bg-highlight">
+        <ion-icon name="logo-whatsapp" slot="start" color="success"></ion-icon>
+        <ion-label>
+          <h3>Contato</h3>
+          <p class="text-success fw-bold">{{ objeto.contato || 'Não informado' }}</p>
+        </ion-label>
+      </ion-item>
 
     </ion-list>
 
   </div>
-
 </ion-content>
 
 <ion-footer class="ion-no-border" *ngIf="objeto.contato">
   <ion-toolbar class="ion-padding">
     <ion-button expand="block" color="success" (click)="abrirWhatsApp()" size="large" style="font-weight: bold;">
       <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
-      Entrar em Contato
+      Enviar Mensagem
     </ion-button>
   </ion-toolbar>
 </ion-footer>

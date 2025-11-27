@@ -2,10 +2,12 @@ import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton, 
-  IonIcon, IonImg, IonBadge, IonList, IonItem, IonLabel, IonFooter, ModalController
+  IonIcon, IonImg, IonBadge, IonList, IonItem, IonLabel, IonFooter, ModalController,
+  IonGrid, IonRow, IonCol
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { close, logoWhatsapp, timeOutline, locationOutline, personOutline, calendarOutline } from 'ionicons/icons';
+// Ícones usados no layout
+import { close, logoWhatsapp, timeOutline, locationOutline, personOutline, calendarOutline, informationCircleOutline } from 'ionicons/icons';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -16,7 +18,8 @@ import { environment } from 'src/environments/environment';
   imports: [
     CommonModule,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton, 
-    IonIcon, IonImg, IonBadge, IonList, IonItem, IonLabel, IonFooter
+    IonIcon, IonImg, IonBadge, IonList, IonItem, IonLabel, IonFooter,
+    IonGrid, IonRow, IonCol
   ]
 })
 export class DetalheObjetoComponent implements OnInit {
@@ -24,38 +27,34 @@ export class DetalheObjetoComponent implements OnInit {
   @Input() objeto: any;
   
   public fotoUrl: string | null = null;
-  public diasCustodia: number = 0;
 
   constructor(private modalCtrl: ModalController) {
-    addIcons({ close, logoWhatsapp, timeOutline, locationOutline, personOutline, calendarOutline });
+    addIcons({ close, logoWhatsapp, timeOutline, locationOutline, personOutline, calendarOutline, informationCircleOutline });
   }
 
   ngOnInit() {
     if (this.objeto) {
-      // 1. Trata a URL da foto
-      if (this.objeto.foto) {
+      // Prioriza a URL segura gerada pelo backend, se não tiver, tenta montar
+      if (this.objeto.url_foto) {
+        this.fotoUrl = this.objeto.url_foto;
+      } else if (this.objeto.foto) {
         this.fotoUrl = this.objeto.foto.startsWith('http') 
           ? this.objeto.foto 
           : environment.apiUrl + this.objeto.foto;
       }
-
-      // 2. Calcula dias em custódia
-      if (this.objeto.data_encontro) {
-        const dataEncontro = new Date(this.objeto.data_encontro);
-        const hoje = new Date();
-        const diffTime = Math.abs(hoje.getTime() - dataEncontro.getTime());
-        this.diasCustodia = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      
+      // Correção de IP para emulador (se necessário)
+      if (this.fotoUrl && (this.fotoUrl.includes('localhost') || this.fotoUrl.includes('127.0.0.1'))) {
+        this.fotoUrl = this.fotoUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2');
       }
     }
   }
 
   abrirWhatsApp() {
     if (this.objeto.contato) {
-      // Remove caracteres não numéricos
       const numero = this.objeto.contato.replace(/\D/g, '');
       const mensagem = `Olá! Vi seu anúncio no Achados e Perdidos da UFT sobre: ${this.objeto.descricao}.`;
       const url = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`;
-      
       window.open(url, '_system');
     }
   }
