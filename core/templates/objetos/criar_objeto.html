@@ -45,8 +45,7 @@
                     
                     {% if form.errors %}
                         <div class="alert alert-danger">
-                            <strong>Erro ao salvar:</strong> Verifique os campos abaixo.
-                            {{ form.errors }}
+                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Atenção:</strong> Verifique os campos destacados abaixo.
                         </div>
                     {% endif %}
 
@@ -79,16 +78,26 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">O que é o objeto?</label>
                             {{ form.descricao }}
+                            {% for error in form.descricao.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Categoria</label>
                                 {{ form.tipo }}
+                                {% for error in form.tipo.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
                             </div>
+                            
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold" id="label-local">Local do Encontro</label>
                                 {{ form.local }}
+                                {% for error in form.local.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -96,10 +105,17 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold" id="label-data">Data do Encontro</label>
                                 {{ form.data_encontro }}
+                                {% for error in form.data_encontro.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
                             </div>
+                            
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Seu Contato (WhatsApp)</label>
                                 {{ form.contato }}
+                                {% for error in form.contato.errors %}
+                                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -107,6 +123,9 @@
                             <label class="form-label fw-bold">Foto (Opcional)</label>
                             {{ form.foto }}
                             <small class="text-muted">Se encontrou, a foto ajuda o dono a reconhecer.</small>
+                            {% for error in form.foto.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <div class="d-grid gap-2">
@@ -128,6 +147,11 @@
         var inputs = document.querySelectorAll('input:not([type="hidden"]), select');
         inputs.forEach(function(input) {
             input.classList.add('form-control');
+            
+            // Heurística 9: Adiciona borda vermelha se houver erro próximo
+            if(input.nextElementSibling && input.nextElementSibling.classList.contains('text-danger')) {
+                input.classList.add('is-invalid');
+            }
         });
 
         // LÓGICA NOVA: Verificar Parâmetros da URL (?situacao=...)
@@ -144,6 +168,21 @@
         } else {
             selecionarSituacao('ACHADO'); 
         }
+
+        // Heurística 1: Feedback de carregamento ao enviar
+        const form = document.getElementById('form-cadastro');
+        form.addEventListener('submit', function(e) {
+            // Se o formulário for inválido (HTML5 validation), não mostra o loading
+            if (!form.checkValidity()) return;
+
+            const btn = document.getElementById('btn-submit');
+            // Salva a largura original para o botão não "encolher"
+            const width = btn.offsetWidth;
+            btn.style.width = width + 'px';
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processando...';
+        });
     });
 
     function selecionarSituacao(valor) {
@@ -163,7 +202,7 @@
             // Estilos
             if(cardAchado) {
                 cardAchado.classList.add('selected-achado');
-                cardAchado.classList.remove('opacity-50'); // Garante opacidade total
+                cardAchado.classList.remove('opacity-50'); 
             }
             if(cardPerdido) {
                 cardPerdido.classList.remove('selected-perdido');
@@ -174,7 +213,8 @@
             if(labelData) labelData.textContent = "Data do Encontro";
             if(btnSubmit) {
                 btnSubmit.className = "btn btn-success btn-lg fw-bold";
-                btnSubmit.innerHTML = '<i class="bi bi-check-lg"></i> Cadastrar Achado';
+                // Só muda o texto se não estiver em loading
+                if(!btnSubmit.disabled) btnSubmit.innerHTML = '<i class="bi bi-check-lg"></i> Cadastrar Achado';
             }
         } else {
             // Estilos
@@ -191,7 +231,7 @@
             if(labelData) labelData.textContent = "Data da Perda";
             if(btnSubmit) {
                 btnSubmit.className = "btn btn-danger btn-lg fw-bold";
-                btnSubmit.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Cadastrar Perda';
+                if(!btnSubmit.disabled) btnSubmit.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Cadastrar Perda';
             }
         }
     }

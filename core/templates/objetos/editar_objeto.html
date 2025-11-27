@@ -55,12 +55,11 @@
                     
                     {% if form.errors %}
                         <div class="alert alert-danger">
-                            <strong>Erro ao salvar:</strong> Verifique os campos abaixo.
-                            {{ form.errors }}
+                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Erro ao salvar:</strong> Verifique os campos destacados abaixo.
                         </div>
                     {% endif %}
 
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="form-edicao">
                         {% csrf_token %}
                         
                         <div class="d-none">
@@ -83,17 +82,26 @@
 
                         <div class="mb-3">
                             <label class="fw-bold">O que é o objeto?</label>
-                            {{ form.descricao }} 
+                            {{ form.descricao }}
+                            {% for error in form.descricao.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="fw-bold">Tipo:</label>
                                 {{ form.tipo }}
+                                {% for error in form.tipo.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-6">
                                 <label class="fw-bold" id="label-local">Local:</label>
                                 {{ form.local }}
+                                {% for error in form.local.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -101,14 +109,23 @@
                             <div class="col-md-4">
                                 <label class="fw-bold">Status:</label>
                                 {{ form.status }}
+                                {% for error in form.status.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="fw-bold" id="label-data">Data:</label>
                                 {{ form.data_encontro }}
+                                {% for error in form.data_encontro.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-md-4">
                                 <label class="fw-bold">Contato (WhatsApp):</label>
                                 {{ form.contato }}
+                                {% for error in form.contato.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
                             </div>
                         </div>
                         
@@ -137,12 +154,16 @@
                             {% else %}
                                 <input type="file" name="foto" class="form-control" accept="image/*">
                             {% endif %}
+                            
+                            {% for error in form.foto.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
                         </div>
 
                         <hr>
                         <div class="d-flex justify-content-between">
                             <a href="{% url 'meus_objetos' %}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-success fw-bold">Salvar Alterações</button>
+                            <button type="submit" id="btn-submit" class="btn btn-success fw-bold">Salvar Alterações</button>
                         </div>
                     </form>
                 </div>
@@ -153,9 +174,15 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Aplica estilo Bootstrap
+        // Aplica estilo Bootstrap e destaca erros
         var inputs = document.querySelectorAll('input:not([type="hidden"]), select');
-        inputs.forEach(el => el.classList.add('form-control'));
+        inputs.forEach(el => {
+            el.classList.add('form-control');
+            // Se houver mensagem de erro abaixo, adiciona borda vermelha no input
+            if(el.nextElementSibling && el.nextElementSibling.classList.contains('text-danger')) {
+                el.classList.add('is-invalid');
+            }
+        });
 
         // Lógica da Situação (Inicia com o valor atual do banco)
         const selectSituacao = document.getElementById('id_situacao');
@@ -172,6 +199,19 @@
                 document.getElementById('input-novo-container').classList.remove('d-none');
             });
         }
+
+        // Heurística 1: Feedback de carregamento
+        const form = document.getElementById('form-edicao');
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) return;
+
+            const btn = document.getElementById('btn-submit');
+            const width = btn.offsetWidth;
+            btn.style.width = width + 'px'; // Mantém o tamanho
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+        });
     });
 
     // Função para alternar visualmente entre Achei e Perdi

@@ -163,7 +163,7 @@ class TestesViewEditarObjeto(TestCase):
         
         # Verifica se o formulário passado é do tipo correto
         self.assertIsInstance(response.context.get('form'), FormularioObjeto)
-        # Opcional: Verifica se o formulário veio preenchido com os dados do objeto
+        # Verifica se o formulário veio preenchido com os dados do objeto
         self.assertEqual(response.context['form'].instance, self.objeto)
 
     def test_post_dono_edita_sucesso(self):
