@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cadastrar Novo Item{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos para os cartões de seleção */
+    .option-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #dee2e6;
+        opacity: 0.7;
+    }
+    .option-card:hover {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
+    .option-card.selected-achado {
+        border-color: #198754; /* Verde */
+        background-color: #d1e7dd;
+        opacity: 1;
+        box-shadow: 0 4px 8px rgba(25, 135, 84, 0.2);
+    }
+    .option-card.selected-perdido {
+        border-color: #dc3545; /* Vermelho */
+        background-color: #f8d7da;
+        opacity: 1;
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+    }
+    .icon-big {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square"></i> Cadastro de Item</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Erro ao salvar:</strong> Verifique os campos abaixo.
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="form-cadastro">
+                        {% csrf_token %}
+                        
+                        <input type="hidden" name="status" value="ATIVO">
+                        
+                        <div class="d-none">
+                            {{ form.situacao }}
+                        </div>
+
+                        <div class="row mb-4 g-3">
+                            <div class="col-6">
+                                <div class="card p-3 text-center option-card selected-achado" id="card-achado" onclick="selecionarSituacao('ACHADO')">
+                                    <i class="bi bi-check-circle-fill text-success icon-big"></i>
+                                    <h5 class="fw-bold text-success">Encontrei</h5>
+                                    <small class="text-muted d-none d-md-block">Achei um objeto sem dono</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card p-3 text-center option-card" id="card-perdido" onclick="selecionarSituacao('PERDIDO')">
+                                    <i class="bi bi-exclamation-circle-fill text-danger icon-big"></i>
+                                    <h5 class="fw-bold text-danger">Perdi</h5>
+                                    <small class="text-muted d-none d-md-block">Perdi meu objeto</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">O que é o objeto?</label>
+                            {{ form.descricao }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Categoria</label>
+                                {{ form.tipo }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold" id="label-local">Local do Encontro</label>
+                                {{ form.local }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold" id="label-data">Data do Encontro</label>
+                                {{ form.data_encontro }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Seu Contato (WhatsApp)</label>
+                                {{ form.contato }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Foto (Opcional)</label>
+                            {{ form.foto }}
+                            <small class="text-muted">Se encontrou, a foto ajuda o dono a reconhecer.</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-dark btn-lg fw-bold" id="btn-submit">
+                                <i class="bi bi-check-lg"></i> Cadastrar Achado
+                            </button>
+                            <a href="{% url 'listar_objetos' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Aplica estilos Bootstrap nos inputs
+        var inputs = document.querySelectorAll('input:not([type="hidden"]), select');
+        inputs.forEach(function(input) {
+            input.classList.add('form-control');
+        });
+
+        // LÓGICA NOVA: Verificar Parâmetros da URL (?situacao=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const situacaoURL = urlParams.get('situacao');
+        
+        const selectSituacao = document.getElementById('id_situacao');
+
+        // Prioridade: 1. URL, 2. Valor do Form (edição/erro), 3. Padrão (ACHADO)
+        if (situacaoURL === 'ACHADO' || situacaoURL === 'PERDIDO') {
+            selecionarSituacao(situacaoURL);
+        } else if(selectSituacao.value) {
+            selecionarSituacao(selectSituacao.value);
+        } else {
+            selecionarSituacao('ACHADO'); 
+        }
+    });
+
+    function selecionarSituacao(valor) {
+        // 1. Atualiza o Select Oculto do Django
+        const select = document.getElementById('id_situacao');
+        if(select) select.value = valor;
+
+        // 2. Elementos visuais
+        const cardAchado = document.getElementById('card-achado');
+        const cardPerdido = document.getElementById('card-perdido');
+        const labelLocal = document.getElementById('label-local');
+        const labelData = document.getElementById('label-data');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        // 3. Lógica de troca
+        if (valor === 'ACHADO') {
+            // Estilos
+            if(cardAchado) {
+                cardAchado.classList.add('selected-achado');
+                cardAchado.classList.remove('opacity-50'); // Garante opacidade total
+            }
+            if(cardPerdido) {
+                cardPerdido.classList.remove('selected-perdido');
+            }
+            
+            // Textos
+            if(labelLocal) labelLocal.textContent = "Local do Encontro";
+            if(labelData) labelData.textContent = "Data do Encontro";
+            if(btnSubmit) {
+                btnSubmit.className = "btn btn-success btn-lg fw-bold";
+                btnSubmit.innerHTML = '<i class="bi bi-check-lg"></i> Cadastrar Achado';
+            }
+        } else {
+            // Estilos
+            if(cardPerdido) {
+                cardPerdido.classList.add('selected-perdido');
+                cardPerdido.classList.remove('opacity-50');
+            }
+            if(cardAchado) {
+                cardAchado.classList.remove('selected-achado');
+            }
+            
+            // Textos
+            if(labelLocal) labelLocal.textContent = "Local da Perda";
+            if(labelData) labelData.textContent = "Data da Perda";
+            if(btnSubmit) {
+                btnSubmit.className = "btn btn-danger btn-lg fw-bold";
+                btnSubmit.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Cadastrar Perda';
+            }
+        }
+    }
+</script>
+{% endblock %}

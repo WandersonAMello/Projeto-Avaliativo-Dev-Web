@@ -15,18 +15,37 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import path, include
-from core.views import Login, Logout, LoginAPI, CadastroUsuario
+
+# Importa as views de autenticação do core/views.py
+from core.views import (
+    Login,
+    Logout,
+    CadastroUsuario,      # Cadastro Web (HTML)
+    LoginAPI,
+    CadastroUsuarioAPI    # Cadastro API (Mobile JSON)
+)
 
 urlpatterns = [
-    path('login/', Login.as_view(), name='Login'), #redireciona a url /login para a view de login
-    path('logout/', Logout.as_view(), name='Logout'), #redireciona a url /logout para a view de logout
-    path('cadastro/', CadastroUsuario.as_view(), name='cadastro'),
-    path('admin/', admin.site.urls), #redireciona todas as urls /admin para o admin do django
-    # API
-    path('autenticacao-api/', LoginAPI.as_view(), name='autenticacao-api'),
+    # --- 1. Administrativo ---
+    path('admin/', admin.site.urls),
 
-    path('objetos/', include('objetos.urls'), name='objetos'),
-    ]
+    # --- 2. Autenticação WEB (Navegador) ---
+    path('login/', Login.as_view(), name='login'),
+    path('logout/', Logout.as_view(), name='logout'),
+    path('cadastro/', CadastroUsuario.as_view(), name='cadastro'),
+
+    # --- 3. Autenticação API (Mobile/Ionic) ---
+    # Rota para Login (Retorna Token)
+    path('api/login/', LoginAPI.as_view(), name='api-login'),
+    
+    # Rota para Cadastro Rápido (Cria Usuário)
+    path('api/cadastro/', CadastroUsuarioAPI.as_view(), name='api-cadastro'),
+
+    # --- 4. Aplicação Principal (Objetos) ---
+    # Inclui as URLs do app objetos (onde está a rota segura de fotos)
+    path('objetos/', include('objetos.urls')),
+    
+    # Redireciona a raiz ('/') para a lista de objetos
+    path('', include('objetos.urls')),
+]

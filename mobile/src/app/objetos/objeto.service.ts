@@ -26,7 +26,7 @@ export class ObjetoService {
   // POST: Envia novo objeto (Crítica 4 - Interatividade)
   async cadastrar(dados: FormData) {
       const options: HttpOptions = {
-        url: this.API_URL,
+        url: this.API_URL + 'criar/',
         
         // O navegador/Capacitor define o boundary multipart automaticamente.
         data: dados

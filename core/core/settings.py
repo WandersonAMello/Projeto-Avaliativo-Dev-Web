@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-e@him8d_^*=yip=)l$e6ty*=)o$r@34!=splngxfspcc(@qyb+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 CORS_ALLOW_HEADERS = [
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cleanup.apps.CleanupConfig',
 
     'corsheaders',
     'rest_framework',
@@ -160,3 +161,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# MEDIA_ROOT = BASE_DIR fará o upload ir para core/objetos/fotos (conforme seu model)
+MEDIA_ROOT = BASE_DIR
+MEDIA_URL = '/media/'
