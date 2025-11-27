@@ -10,9 +10,7 @@ import { Platform } from '@ionic/angular/standalone';
 })
 export class ObjetoService {
 
-  // URL base definida no environment
   private readonly API_URL = environment.apiUrl + '/objetos/api/';
-
   private _storage: Storage | null = null;
 
   constructor(
@@ -28,29 +26,28 @@ export class ObjetoService {
     this._storage = storage;
   }
 
-  private async getHeaders(isFormData: boolean = false) {
-    const token = await this._storage?.get('token');
-    let headers = new HttpHeaders();
+  private async getToken() {
+    return await this._storage?.get('token');
+  }
 
+  private async getHeaders(isFormData: boolean = false) {
+    const token = await this.getToken();
+    let headers = new HttpHeaders();
     if (token) {
       headers = headers.set('Authorization', `Token ${token}`);
     }
-
     return headers;
   }
 
-  // --- TRATAMENTO DE IMAGEM ---
-  private corrigirUrlImagem(item: any): any {
-    // 1. Prioriza a URL segura gerada pelo Serializer (url_foto)
-    // Se ela existir, passamos para o campo 'foto' que o HTML usa.
+  // --- ATUALIZADO: Recebe o token para anexar na URL ---
+  private corrigirUrlImagem(item: any, token: string): any {
+    // 1. Usa a URL do backend
     if (item.url_foto) {
       item.foto = item.url_foto;
     }
 
-    // 2. Corrige o IP para o Emulador Android (10.0.2.2)
+    // 2. Corrige IP para Emulador (10.0.2.2) se necessário
     if (this.platform.is('capacitor') || this.platform.is('cordova') || this.platform.is('android')) {
-
-      // Lógica para EMULADOR ANDROID (troca localhost por 10.0.2.2)
       if (item.foto && typeof item.foto === 'string') {
         if (item.foto.includes('localhost')) {
           item.foto = item.foto.replace('localhost', '10.0.2.2');
@@ -59,41 +56,51 @@ export class ObjetoService {
         }
       }
     }
+
+    // 3. SEGURANÇA: Adiciona o Token na URL da imagem
+    // Resultado: http://.../foto.jpg?token=9944b09...
+    if (item.foto && token) {
+        // Verifica se já tem ? (query params) ou não
+        const separador = item.foto.includes('?') ? '&' : '?';
+        item.foto = `${item.foto}${separador}token=${token}`;
+    }
+    
     return item;
   }
 
-  // --- MÉTODOS DE LEITURA ---
+  // --- LEITURA ATUALIZADA ---
 
   async listar() {
     const headers = await this.getHeaders();
+    const token = await this.getToken(); // Pega o token aqui
+
     const lista: any = await firstValueFrom(this.http.get(this.API_URL, { headers }));
     
-    // Aplica a correção em CADA item da lista
-    const dadosCorrigidos = lista.map((item: any) => this.corrigirUrlImagem(item));
+    // Passa o token para a função de correção
+    const dadosCorrigidos = lista.map((item: any) => this.corrigirUrlImagem(item, token));
     
     return { data: dadosCorrigidos, status: 200 };
   }
 
   async listarMeus() {
     const headers = await this.getHeaders();
+    const token = await this.getToken(); // Pega o token aqui
+
     const lista: any = await firstValueFrom(this.http.get(`${this.API_URL}meus-itens/`, { headers }));
     
-    const dadosCorrigidos = lista.map((item: any) => this.corrigirUrlImagem(item));
+    const dadosCorrigidos = lista.map((item: any) => this.corrigirUrlImagem(item, token));
     
     return { data: dadosCorrigidos, status: 200 };
   }
 
-  // --- MÉTODOS DE ESCRITA ---
-
+  // ... (Os métodos de ESCRITA - cadastrar, editar, remover - permanecem iguais) ...
   async cadastrar(dados: any) {
     const isFormData = dados instanceof FormData;
     const headers = await this.getHeaders(isFormData);
-
     try {
       const resp = await firstValueFrom(this.http.post(`${this.API_URL}criar/`, dados, { headers }));
       return { data: resp, status: 201 };
     } catch (error: any) {
-      console.error('Erro cadastro:', error);
       return { status: error.status || 500, error };
     }
   }
@@ -101,7 +108,6 @@ export class ObjetoService {
   async editar(id: number, dados: any) {
     const isFormData = dados instanceof FormData;
     const headers = await this.getHeaders(isFormData);
-
     try {
       const resp = await firstValueFrom(this.http.patch(`${this.API_URL}editar/${id}/`, dados, { headers }));
       return { data: resp, status: 200 };

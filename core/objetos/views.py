@@ -18,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework import permissions
+from rest_framework.authtoken.models import Token
+from django.http import HttpResponseForbidden
 from objetos.serializers import SerializadorObjeto
 
 from .consts import LOCAL_CHOICES, TIPO_CHOICES
@@ -138,45 +140,30 @@ def alternar_status_ajax(request, pk):
         'status_display': objeto.get_status_display()
     })
 
-class APIListarObjetos(ListAPIView):
-    """
-    View para listar instâncias de Objetos (por meio da API REST).
-    """
-    serializer_class = SerializadorObjeto
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Objeto.objects.filter(status='ATIVO').order_by('-data_encontro')
-
-class APICriarObjeto(CreateAPIView):
-    """
-    View para criar instâncias de Objetos (por meio da API REST).
-    """
-    serializer_class = SerializadorObjeto
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Objeto.objects.all()
-
-class APIDeletarObjeto(DestroyAPIView):
-    """
-    View para deletar instâncias de Objetos (por meio da API REST).
-    """
-    serializer_class = SerializadorObjeto
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Objeto.objects.all()
-
 class FotoObjeto(View):
     """
     View segura para servir imagens dos objetos.
     A imagem é servida apenas se existir um Objeto com essa foto.
     """
     def get(self, request, arquivo):
+        acesso_permitido = False
+
+        # 1. Verificação WEB (Sessão / Cookies)
+        if request.user.is_authenticated:
+            acesso_permitido = True
+
+        # 2. Verificação MOBILE (Token na URL: ?token=xyz...)
+        elif 'token' in request.GET:
+            token_key = request.GET.get('token')
+            try:
+                # Verifica se o token existe no banco
+                Token.objects.get(key=token_key)
+                acesso_permitido = True
+            except Token.DoesNotExist:
+                pass
+
+        if not acesso_permitido:
+            return HttpResponseForbidden("Você não tem permissão para ver esta imagem.")
         try:
             # Busca o objeto que tem essa foto específica
             # O caminho no banco é 'objetos/fotos/nome_arquivo.jpg'

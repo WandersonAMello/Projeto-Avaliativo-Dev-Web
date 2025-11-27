@@ -162,6 +162,6 @@ LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# MEDIA_ROOT = BASE_DIR fará o upload ir para core/objetos/fotos (conforme seu model)
+# MEDIA_ROOT = BASE_DIR fará o upload ir para core/objetos/fotos
 MEDIA_ROOT = BASE_DIR
 MEDIA_URL = '/media/'
