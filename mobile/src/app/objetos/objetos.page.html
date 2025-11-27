@@ -97,11 +97,21 @@
             
             @if (segmentoSelecionado === 'meus') {
               <div class="action-buttons" (click)="$event.stopPropagation()">
-                <ion-button fill="outline" size="small" (click)="abrirModal(item)">
-                  Editar
+                
+                <ion-button 
+                  [color]="item.status === 'ATIVO' ? 'success' : 'warning'" 
+                  fill="outline" 
+                  size="small" 
+                  (click)="mudarStatus(item)">
+                  <ion-icon slot="icon-only" [name]="item.status === 'ATIVO' ? 'checkmark-done-circle-outline' : 'refresh-outline'"></ion-icon>
                 </ion-button>
+
+                <ion-button fill="outline" size="small" (click)="abrirModal(item)">
+                  <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                </ion-button>
+                
                 <ion-button fill="outline" color="danger" size="small" (click)="confirmarExclusao(item.id)">
-                  Excluir
+                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
                 </ion-button>
               </div>
             }

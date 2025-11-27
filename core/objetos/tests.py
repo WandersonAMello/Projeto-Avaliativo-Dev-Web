@@ -158,9 +158,9 @@ class TestesViewEditarObjeto(TestCase):
         """
         self.client.force_login(self.dono)
         response = self.client.get(self.url)
-        
+
         self.assertEqual(response.status_code, 200)
-        
+
         # Verifica se o formulário passado é do tipo correto
         self.assertIsInstance(response.context.get('form'), FormularioObjeto)
         # Verifica se o formulário veio preenchido com os dados do objeto
@@ -178,10 +178,10 @@ class TestesViewEditarObjeto(TestCase):
             'data_encontro': date.today()
         }
         response = self.client.post(self.url, dados)
-        
+
         # Verifica redirecionamento para 'meus_objetos'
         self.assertRedirects(response, reverse('meus_objetos'))
-        
+
         self.objeto.refresh_from_db()
         self.assertEqual(self.objeto.descricao, 'Editado')
 
@@ -234,26 +234,84 @@ class TestesViewAlternarStatusAjax(TestCase):
 
 class TestesViewFotoObjeto(TestCase):
     """
-    Testa a View 'FotoObjeto' (Download seguro de imagens).
+    Testa a View 'FotoObjeto' com segurança reforçada.
+    Verifica: Bloqueio anônimo, Acesso via Sessão (Web) e Acesso via Token (Mobile).
     """
     def setUp(self):
+        # 1. Cria usuário e Token
         self.user = User.objects.create_user(username='foto_user', password='123')
-        # Cria uma imagem falsa na memória (GIF de 1px)
-        img = SimpleUploadedFile('teste.gif', b'GIF89a...', content_type='image/gif')
-        self.objeto = Objeto.objects.create(dono=self.user, descricao="Com Foto", local="BLOCO_A", foto=img)
+        self.token = Token.objects.create(user=self.user)
+
+        # 2. Cria uma imagem falsa na memória (GIF de 1px)
+        img = SimpleUploadedFile(
+            'teste.gif',
+            b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b', 
+            content_type='image/gif'
+        )
+
+        self.objeto = Objeto.objects.create(
+            dono=self.user,
+            descricao="Com Foto",
+            local="BLOCO_A",
+            foto=img
+        )
+
         self.nome_arquivo = os.path.basename(self.objeto.foto.name)
+        self.url = reverse('foto-objeto', args=[self.nome_arquivo])
 
     def tearDown(self):
         # Limpa o arquivo físico após o teste
         if self.objeto.foto:
             self.objeto.foto.delete()
 
-    def test_acesso_foto(self):
-        """Se o arquivo existe, deve retornar status 200."""
-        url = reverse('foto-objeto', args=[self.nome_arquivo])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
+    def test_acesso_negado_anonimo(self):
+        """
+        Cenário: Hacker ou usuário deslogado tenta acessar direto.
+        Resultado esperado: 403 Forbidden.
+        """
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
 
+    def test_acesso_permitido_web_login(self):
+        """
+        Cenário: Usuário acessa pelo navegador (Web) estando logado.
+        Resultado esperado: 200 OK (Arquivo).
+        """
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.streaming)
+
+    def test_acesso_permitido_mobile_token(self):
+        """
+        Cenário: App Mobile envia o token na URL (?token=...).
+        Resultado esperado: 200 OK (Arquivo).
+        """
+        # Monta a URL com o token
+        url_com_token = f"{self.url}?token={self.token.key}"
+
+        response = self.client.get(url_com_token)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.streaming)
+
+    def test_acesso_negado_token_invalido(self):
+        """
+        Cenário: Alguém tenta adivinhar um token.
+        Resultado esperado: 403 Forbidden.
+        """
+        url_falsa = f"{self.url}?token=token_invalido_123"
+        response = self.client.get(url_falsa)
+        self.assertEqual(response.status_code, 403)
+
+    def test_foto_inexistente_404(self):
+        """
+        Cenário: Usuário logado tenta acessar um arquivo que não está no banco.
+        Resultado esperado: 404 Not Found.
+        """
+        self.client.force_login(self.user)
+        url_404 = reverse('foto-objeto', args=['arquivo_fantasma.jpg'])
+        response = self.client.get(url_404)
+        self.assertEqual(response.status_code, 404)
 
 # ==============================================================================
 # 3. TESTES DAS VIEWS API (MOBILE)

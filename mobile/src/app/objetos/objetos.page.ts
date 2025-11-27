@@ -7,12 +7,15 @@ import {
   IonButtons, IonButton, IonIcon, IonList, IonFab, IonFabButton, 
   ModalController, AlertController, IonSegment, IonSegmentButton, IonBadge,
   IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCardContent,
-  IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel
+  IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel, LoadingController
 } from '@ionic/angular/standalone';
 import { Storage } from '@ionic/storage-angular';
 import { addIcons } from 'ionicons';
 // Importação dos ícones usados no HTML
-import { add, logOutOutline, trashOutline, timeOutline, locationOutline, createOutline, refreshOutline, imagesOutline } from 'ionicons/icons';
+import {
+  add, logOutOutline, trashOutline, timeOutline, locationOutline, 
+  createOutline, refreshOutline, imagesOutline, checkmarkDoneCircleOutline 
+} from 'ionicons/icons';
 
 import { Usuario } from '../login/usuario.model';
 import { NovoObjetoComponent } from './novo-objeto/novo-objeto.component';
@@ -29,7 +32,7 @@ import { DetalheObjetoComponent } from './detalhe-objeto/detalhe-objeto.componen
     IonContent, IonHeader, IonTitle, IonToolbar, IonList,
     CommonModule, FormsModule, IonSegment, IonSegmentButton, IonBadge,
     IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCardContent,
-    IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel,
+    IonRefresher, IonRefresherContent, IonSkeletonText, IonLabel
   ],
   providers: [Storage]
 })
@@ -37,10 +40,10 @@ export class ObjetosPage implements OnInit {
 
   public usuario: Usuario = new Usuario();
   public lista_objetos: any[] = [];
-  
+
   // Controla qual aba está ativa ('todos' ou 'meus')
   public segmentoSelecionado: string = 'todos';
-  
+
   // Controla se o esqueleto de carregamento (skeleton) deve aparecer
   public isLoading: boolean = true;
 
@@ -50,10 +53,11 @@ export class ObjetosPage implements OnInit {
     public controle_toast: ToastController,
     public controle_navegacao: NavController,
     public modalCtrl: ModalController,
-    public alertCtrl: AlertController
-  ) { 
+    public alertCtrl: AlertController,
+    public controle_carregamento: LoadingController
+  ) {
     // Registo dos ícones para serem usados com name="icone"
-    addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline, createOutline, refreshOutline, imagesOutline });
+    addIcons({ add, logOutOutline, trashOutline, timeOutline, locationOutline, createOutline, refreshOutline, imagesOutline, checkmarkDoneCircleOutline });
   }
 
   async ngOnInit() {
@@ -133,6 +137,32 @@ export class ObjetosPage implements OnInit {
       componentProps: { objeto: item }
     });
     await modal.present();
+  }
+
+  async mudarStatus(item: any) {
+    // Feedback visual rápido (Loading)
+    const loading = await this.controle_carregamento.create({
+      message: 'Atualizando status...',
+      duration: 5000
+    });
+    await loading.present();
+
+    try {
+      const resp = await this.service.alternarStatus(item.id);
+      loading.dismiss();
+
+      if (resp.status === 200) {
+        // Sucesso! O backend retorna o novo status.
+        // Podemos recarregar tudo ou atualizar só o item localmente para ser mais rápido:
+        this.apresenta_mensagem(`Item marcado como ${(resp.data as any).status_display}`);
+        this.carregarDados(false); // Recarrega a lista para garantir sincronia
+      } else {
+        this.apresenta_mensagem('Erro ao alterar status.');
+      }
+    } catch (erro) {
+      loading.dismiss();
+      this.apresenta_mensagem('Erro de conexão.');
+    }
   }
 
   // Abre o formulário de cadastro ou edição

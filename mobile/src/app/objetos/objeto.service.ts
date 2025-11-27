@@ -125,4 +125,15 @@ export class ObjetoService {
       return { status: error.status || 500, error };
     }
   }
+
+  async alternarStatus(id: number) {
+    const headers = await this.getHeaders();
+    try {
+      // O backend espera um POST vazio apenas para triggar a mudança
+      const resp = await firstValueFrom(this.http.post(`${this.API_URL}status/${id}/`, {}, { headers }));
+      return { data: resp, status: 200 };
+    } catch (error: any) {
+      return { status: error.status || 500, error };
+    }
+  }
 }
