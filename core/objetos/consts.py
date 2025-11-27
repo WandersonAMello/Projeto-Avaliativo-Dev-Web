@@ -37,6 +37,7 @@ TIPO_CHOICES = (
     ('ELETRONICOS', 'Eletrônicos'),
     ('CHAVES', 'Chaves'),
     ('CARTEIRA', 'Carteira'),
+    ('CARTOES', 'Cartões'),
     ('DOCUMENTOS', 'Documentos'),
     ('VESTUARIO', 'Vestuário'),
     ('OUTRO', 'Outro'),
