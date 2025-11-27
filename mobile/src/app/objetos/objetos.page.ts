@@ -125,6 +125,9 @@ export class ObjetosPage implements OnInit {
 
   //Arbir modal de detalhes do objeto
   async verDetalhes(item: any) {
+
+    if (this.segmentoSelecionado === 'meus') return;
+
     const modal = await this.modalCtrl.create({
       component: DetalheObjetoComponent,
       componentProps: { objeto: item }

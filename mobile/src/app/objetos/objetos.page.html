@@ -53,7 +53,8 @@
   @if (!isLoading) {
     <div class="card-grid">
       @for (item of lista_objetos; track item.id) {
-        <ion-card class="objeto-cardclickable" (click)="verDetalhes(item)">
+        
+        <ion-card class="objeto-card clickable" (click)="verDetalhes(item)">
           
           <div class="img-wrapper">
             @if (item.foto) {
@@ -86,9 +87,9 @@
               <ion-icon name="time-outline"></ion-icon>
               <span>{{ item.data_encontro | date:'dd/MM/yyyy' }}</span>
             </div>
-            
+
             @if (segmentoSelecionado === 'meus') {
-              <div class="action-buttons">
+              <div class="action-buttons" (click)="$event.stopPropagation()">
                 <ion-button fill="outline" size="small" (click)="abrirModal(item)">
                   Editar
                 </ion-button>
