@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Criar Conta{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-uft text-white text-center py-3">
+                    <h4 class="mb-0 fw-bold">Nova Conta</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <p class="text-center text-muted mb-4">
+                        Preencha os dados abaixo para acessar o sistema de Achados e Perdidos da UFT.
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-text text-muted d-block">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning fw-bold">Cadastrar</button>
+                            <a href="{% url 'login' %}" class="btn btn-outline-secondary">Já tenho conta</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var inputs = document.querySelectorAll('input');
+        inputs.forEach(function(input) {
+            input.classList.add('form-control');
+        });
+        
+        // Ajuste específico para helptext de senha do Django que vem em lista
+        var ulHelp = document.querySelectorAll('.helptext ul');
+        ulHelp.forEach(ul => ul.classList.add('list-unstyled', 'small', 'text-muted'));
+    });
+</script>
+{% endblock %}

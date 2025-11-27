@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar Objeto{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos para os cartões de seleção (Miniaturas) */
+    .option-card-small {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid #dee2e6;
+        opacity: 0.6;
+    }
+    .option-card-small:hover {
+        opacity: 0.9;
+    }
+    .option-card-small.selected-achado {
+        border-color: #198754;
+        background-color: #d1e7dd;
+        opacity: 1;
+    }
+    .option-card-small.selected-perdido {
+        border-color: #dc3545;
+        background-color: #f8d7da;
+        opacity: 1;
+    }
+
+    /* Estilo para o botão X da foto */
+    .img-preview-container {
+        position: relative;
+        display: inline-block;
+        width: fit-content;
+    }
+    .btn-delete-photo {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        border-radius: 50%;
+        padding: 2px 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        z-index: 10;
+    }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square"></i> Editar Objeto</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Erro ao salvar:</strong> Verifique os campos destacados abaixo.
+                        </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="form-edicao">
+                        {% csrf_token %}
+                        
+                        <div class="d-none">
+                            {{ form.situacao }}
+                        </div>
+
+                        <div class="row mb-3">
+                            <label class="fw-bold mb-2">Situação do Item:</label>
+                            <div class="col-6">
+                                <div class="card p-2 text-center option-card-small" id="card-achado" onclick="selecionarSituacao('ACHADO')">
+                                    <h6 class="fw-bold text-success mb-0"><i class="bi bi-check-circle"></i> Encontrei</h6>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card p-2 text-center option-card-small" id="card-perdido" onclick="selecionarSituacao('PERDIDO')">
+                                    <h6 class="fw-bold text-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Perdi</h6>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="fw-bold">O que é o objeto?</label>
+                            {{ form.descricao }}
+                            {% for error in form.descricao.errors %}
+                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="fw-bold">Tipo:</label>
+                                {{ form.tipo }}
+                                {% for error in form.tipo.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold" id="label-local">Local:</label>
+                                {{ form.local }}
+                                {% for error in form.local.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold">Status:</label>
+                                {{ form.status }}
+                                {% for error in form.status.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold" id="label-data">Data:</label>
+                                {{ form.data_encontro }}
+                                {% for error in form.data_encontro.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold">Contato (WhatsApp):</label>
+                                {{ form.contato }}
+                                {% for error in form.contato.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="fw-bold d-block mb-2">Foto do Objeto:</label>
+                            
+                            {% if object.foto %}
+                                <div id="preview-container" class="img-preview-container bg-light p-2 rounded border">
+                                    <img src="{% url 'foto-objeto' object.get_nome_arquivo_foto %}" 
+                                         height="150" 
+                                         class="rounded" 
+                                         alt="Foto atual">
+                                    
+                                    <button type="button" class="btn btn-danger btn-sm btn-delete-photo" id="btn-remove-foto" title="Remover foto">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <input type="checkbox" name="foto-clear" id="id_foto-clear" hidden>
+                                
+                                <div id="input-novo-container" class="mt-2 d-none">
+                                    <label class="small text-muted">Selecione uma nova foto:</label>
+                                    <input type="file" name="foto" class="form-control" accept="image/*">
+                                </div>
+
+                            {% else %}
+                                <input type="file" name="foto" class="form-control" accept="image/*">
+                            {% endif %}
+                            
+                            {% for error in form.foto.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'meus_objetos' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" id="btn-submit" class="btn btn-success fw-bold">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Aplica estilo Bootstrap e destaca erros
+        var inputs = document.querySelectorAll('input:not([type="hidden"]), select');
+        inputs.forEach(el => {
+            el.classList.add('form-control');
+            // Se houver mensagem de erro abaixo, adiciona borda vermelha no input
+            if(el.nextElementSibling && el.nextElementSibling.classList.contains('text-danger')) {
+                el.classList.add('is-invalid');
+            }
+        });
+
+        // Lógica da Situação (Inicia com o valor atual do banco)
+        const selectSituacao = document.getElementById('id_situacao');
+        if(selectSituacao.value) {
+            selecionarSituacao(selectSituacao.value);
+        }
+
+        // Lógica do Botão X da Foto
+        const btnRemove = document.getElementById('btn-remove-foto');
+        if (btnRemove) {
+            btnRemove.addEventListener('click', function() {
+                document.getElementById('preview-container').classList.add('d-none');
+                document.getElementById('id_foto-clear').checked = true;
+                document.getElementById('input-novo-container').classList.remove('d-none');
+            });
+        }
+
+        // Heurística 1: Feedback de carregamento
+        const form = document.getElementById('form-edicao');
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) return;
+
+            const btn = document.getElementById('btn-submit');
+            const width = btn.offsetWidth;
+            btn.style.width = width + 'px'; // Mantém o tamanho
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...';
+        });
+    });
+
+    // Função para alternar visualmente entre Achei e Perdi
+    function selecionarSituacao(valor) {
+        // 1. Atualiza o input oculto
+        const select = document.getElementById('id_situacao');
+        select.value = valor;
+
+        // 2. Elementos visuais
+        const cardAchado = document.getElementById('card-achado');
+        const cardPerdido = document.getElementById('card-perdido');
+        const labelLocal = document.getElementById('label-local');
+        const labelData = document.getElementById('label-data');
+
+        // 3. Troca de estilos e textos
+        if (valor === 'ACHADO') {
+            cardAchado.classList.add('selected-achado');
+            cardPerdido.classList.remove('selected-perdido');
+            labelLocal.textContent = "Local do Encontro:";
+            labelData.textContent = "Data do Encontro:";
+        } else {
+            cardPerdido.classList.add('selected-perdido');
+            cardAchado.classList.remove('selected-achado');
+            labelLocal.textContent = "Local da Perda:";
+            labelData.textContent = "Data da Perda:";
+        }
+    }
+</script>
+{% endblock %}

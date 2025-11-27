@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CapacitorHttp, HttpOptions } from '@capacitor/core';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -23,27 +24,20 @@ export class ObjetoService {
   }
 
   // POST: Envia novo objeto (Crítica 4 - Interatividade)
-  async cadastrar(descricao: string, local: string, estado: string) {
-    const corpo = {
-      descricao: descricao,
-      local: local,
-      estado: estado,
-      data_encontro: new Date().toISOString().split('T')[0] // Data de hoje YYYY-MM-DD
-    };
+  async cadastrar(dados: FormData) {
+      const options: HttpOptions = {
+        url: this.API_URL + 'criar/',
+        
+        // O navegador/Capacitor define o boundary multipart automaticamente.
+        data: dados
+      };
+      return CapacitorHttp.post(options);
+    }
 
-    const options: HttpOptions = {
-      url: this.API_URL,
-      headers: { 'Content-Type': 'application/json' },
-      data: corpo
-    };
-
-    return CapacitorHttp.post(options);
-  }
-  
   // DELETE: Remove objeto
   async remover(id: number) {
       const options: HttpOptions = {
-      url: `${this.API_URL}${id}/`, // Concatena ID na URL hardcoded
+      url: `${this.API_URL}${id}/`,
       headers: { 'Content-Type': 'application/json' }
     };
     return CapacitorHttp.delete(options);

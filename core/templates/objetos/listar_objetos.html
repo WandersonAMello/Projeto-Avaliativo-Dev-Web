@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Achados e Perdidos - Início{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4 align-items-center justify-content-between">
+        <div class="col-md-6">
+            <h2 class="text-success fw-bold">Mural de Objetos</h2>
+            <p class="text-muted mb-0">Veja o que foi encontrado ou ajude alguém a encontrar o que perdeu.</p>
+        </div>
+        
+        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+            <span class="text-muted me-2 small d-block d-md-inline mb-2 mb-md-0">O que você quer registrar?</span>
+            <div class="btn-group shadow-sm" role="group">
+                <a href="{% url 'criar_objeto' %}?situacao=ACHADO" class="btn btn-success btn-lg fw-bold px-4">
+                    <i class="bi bi-check-lg"></i> Achei algo
+                </a>
+                <a href="{% url 'criar_objeto' %}?situacao=PERDIDO" class="btn btn-danger btn-lg fw-bold px-4">
+                    <i class="bi bi-exclamation-triangle"></i> Perdi algo
+                </a>
+            </div>
+        </div>
+    </div>
+
+<div class="card p-3 mb-4 shadow-sm bg-light border-0">
+        <form method="GET" class="row g-3">
+            
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Local:</label>
+                <select name="local" class="form-select">
+                    <option value="">Todos os Locais</option>
+                    {% for valor, nome in lista_locais %}
+                        <option value="{{ valor }}" {% if request.GET.local == valor %}selected{% endif %}>
+                            {{ nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Tipo:</label>
+                <select name="tipo" class="form-select">
+                    <option value="">Todos os Tipos</option>
+                    {% for valor, nome in lista_tipos %}
+                        <option value="{{ valor }}" {% if request.GET.tipo == valor %}selected{% endif %}>
+                            {{ nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1">Data:</label>
+                <input type="date" name="data" class="form-control" value="{{ request.GET.data }}">
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-success flex-grow-1 fw-bold">
+                    <i class="bi bi-filter"></i> Filtrar
+                </button>
+                
+                {% if request.GET.local or request.GET.tipo or request.GET.data %}
+                    <a href="{% url 'listar_objetos' %}" class="btn btn-outline-secondary" title="Limpar Filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    <ul class="nav nav-pills mb-3 nav-justified" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="pills-achados-tab" data-bs-toggle="pill" data-bs-target="#pills-achados" type="button" role="tab">
+                <i class="bi bi-check-circle"></i> Objetos Encontrados (Achados)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-danger" id="pills-perdidos-tab" data-bs-toggle="pill" data-bs-target="#pills-perdidos" type="button" role="tab">
+                <i class="bi bi-exclamation-circle"></i> Objetos Perdidos (Procuram-se)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="pills-tabContent">
+        
+        <div class="tab-pane fade show active" id="pills-achados" role="tabpanel">
+            <div class="row">
+                {% for objeto in achados %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm hover-effect border-success" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modal-{{ objeto.id }}">
+                        
+                        <div style="height: 200px; background-color: #f0f0f0; overflow: hidden;" class="d-flex align-items-center justify-content-center">
+                            {% if objeto.foto %}
+                                <img src="{% url 'foto-objeto' objeto.get_nome_arquivo_foto %}" class="w-100 h-100" style="object-fit: cover;">
+                            {% else %}
+                                <i class="bi bi-camera text-muted" style="font-size: 3rem;"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+                            <h5 class="card-title text-success fw-bold mb-1">{{ objeto.descricao }}</h5>
+                            
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-person-circle"></i> Achado por: <strong>{{ objeto.dono.username }}</strong>
+                            </p>
+
+                            <span class="badge bg-warning text-dark">{{ objeto.get_tipo_display }}</span>
+                            <p class="card-text mt-2 mb-1"><i class="bi bi-geo-alt-fill text-danger"></i> {{ objeto.get_local_display }}</p>
+                            <small class="text-muted">Data: {{ objeto.data_encontro|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="modal-{{ objeto.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title">{{ objeto.descricao }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="text-center mb-3">
+                                        {% if objeto.foto %}
+                                            <img src="{% url 'foto-objeto' objeto.get_nome_arquivo_foto %}" class="img-fluid rounded" style="max-height: 250px;">
+                                        {% endif %}
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item"><strong>Situação:</strong> <span class="badge bg-success">ENCONTRADO</span></li>
+                                        <li class="list-group-item">
+                                            <strong><i class="bi bi-person"></i> Publicado por:</strong> {{ objeto.dono.username }}
+                                        </li>
+                                        <li class="list-group-item"><strong>Local:</strong> {{ objeto.get_local_display }}</li>
+                                        <li class="list-group-item"><strong>Data:</strong> {{ objeto.data_encontro|date:"d/m/Y" }}</li>
+                                        <li class="list-group-item"><strong>Custódia:</strong> {{ objeto.dias_em_custodia }} dias</li>
+                                        <li class="list-group-item bg-light">
+                                            <strong><i class="bi bi-whatsapp text-success"></i> Contato:</strong> 
+                                            <span class="fs-5">{{ objeto.contato|default:"Não informado" }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    {% if objeto.contato %}
+                                    <a href="https://wa.me/55{{ objeto.contato|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" class="btn btn-success">
+                                        <i class="bi bi-whatsapp"></i> Enviar Mensagem
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                {% empty %}
+                <div class="col-12 text-center mt-5">
+                    <h4 class="text-muted">Nenhum objeto encontrado cadastrado com estes filtros.</h4>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-perdidos" role="tabpanel">
+            <div class="row">
+                {% for objeto in perdidos %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm hover-effect border-danger" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modal-{{ objeto.id }}">
+                        
+                        <div style="height: 200px; background-color: #f0f0f0; overflow: hidden;" class="d-flex align-items-center justify-content-center">
+                            {% if objeto.foto %}
+                                <img src="{% url 'foto-objeto' objeto.get_nome_arquivo_foto %}" class="w-100 h-100" style="object-fit: cover;">
+                            {% else %}
+                                <i class="bi bi-question-circle text-muted" style="font-size: 3rem;"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+                            <h5 class="card-title text-danger fw-bold mb-1">{{ objeto.descricao }}</h5>
+                            
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-person-circle"></i> Perdido por: <strong>{{ objeto.dono.username }}</strong>
+                            </p>
+
+                            <span class="badge bg-secondary">PROCURA-SE</span>
+                            <p class="card-text mt-2 mb-1"><i class="bi bi-geo-alt-fill text-danger"></i> {{ objeto.get_local_display }}</p>
+                            <small class="text-muted">Data: {{ objeto.data_encontro|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="modal-{{ objeto.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">{{ objeto.descricao }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="text-center mb-3">
+                                        {% if objeto.foto %}
+                                            <img src="{% url 'foto-objeto' objeto.get_nome_arquivo_foto %}" class="img-fluid rounded" style="max-height: 250px;">
+                                        {% endif %}
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item"><strong>Situação:</strong> <span class="badge bg-danger">PERDIDO</span></li>
+                                        <li class="list-group-item">
+                                            <strong><i class="bi bi-person"></i> Quem perdeu:</strong> {{ objeto.dono.username }}
+                                        </li>
+                                        <li class="list-group-item"><strong>Local onde sumiu:</strong> {{ objeto.get_local_display }}</li>
+                                        <li class="list-group-item"><strong>Data:</strong> {{ objeto.data_encontro|date:"d/m/Y" }}</li>
+                                        <li class="list-group-item bg-light">
+                                            <strong><i class="bi bi-whatsapp text-success"></i> Contato do Dono:</strong> 
+                                            <span class="fs-5">{{ objeto.contato|default:"Não informado" }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    {% if objeto.contato %}
+                                    <a href="https://wa.me/55{{ objeto.contato|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" class="btn btn-success">
+                                        <i class="bi bi-whatsapp"></i> Eu encontrei! (WhatsApp)
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                {% empty %}
+                <div class="col-12 text-center mt-5">
+                    <h4 class="text-muted">Nenhum objeto perdido encontrado com estes filtros.</h4>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

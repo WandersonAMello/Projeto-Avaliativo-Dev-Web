@@ -1,13 +1,59 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>objetos</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Achados & Perdidos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="logout()">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">objetos</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="ion-padding-top">
+
+  @if (lista_objetos.length === 0) {
+    <div class="ion-text-center ion-padding">
+      <p>Nenhum objeto encontrado.</p>
+    </div>
+  }
+
+  <ion-list>
+    @for (item of lista_objetos; track item.id) {
+      <ion-item>
+        
+        @if (item.foto) {
+          <ion-thumbnail slot="start">
+            <ion-img [src]="item.foto" alt="Foto do objeto"></ion-img>
+          </ion-thumbnail>
+        }
+
+        <ion-label>
+          <h2>{{ item.descricao }}</h2>
+          <p>
+            <ion-icon name="location-outline" style="vertical-align: middle;"></ion-icon> 
+            {{ item.local }}
+          </p>
+          <p>
+            <ion-icon name="time-outline" style="vertical-align: middle;"></ion-icon>
+            {{ item.data_encontro | date:'dd/MM/yyyy' }} 
+            
+            <span *ngIf="item.dias_custodia !== undefined">
+              ({{ item.dias_custodia }} dias)
+            </span>
+          </p>
+        </ion-label>
+
+        <ion-button fill="clear" color="danger" slot="end" (click)="excluir(item.id)">
+          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </ion-item>
+    }
+  </ion-list>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="novoRegistro()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
 </ion-content>

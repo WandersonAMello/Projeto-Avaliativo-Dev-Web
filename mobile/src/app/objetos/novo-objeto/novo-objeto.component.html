@@ -1,0 +1,69 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Novo Achado</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="fechar()">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <ion-item>
+    <ion-label position="stacked">O que você achou?</ion-label>
+    <ion-input [(ngModel)]="descricao" placeholder="Ex: Caderno Vermelho"></ion-input>
+  </ion-item>
+
+  <ion-item id="trigger-locais" button detail="true" class="ion-margin-top">
+    <ion-label position="stacked">Onde?</ion-label>
+    <ion-input readonly
+                [value]="localSelecionado ? localSelecionado.nome : ''"
+                placeholder="Toque para selecionar">
+    </ion-input>
+  </ion-item>
+
+  <ion-modal trigger="trigger-locais" #modalLocais>
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Selecionar Local</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="modalLocais.dismiss()">Fechar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar placeholder="Buscar local..." (ionInput)="filtrarLocais($event)"></ion-searchbar>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item *ngFor="let local of locaisFiltrados" button (click)="escolherLocal(local, modalLocais)">
+            <ion-label>{{ local.nome }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <div class="ion-margin-top ion-text-center">
+    <ion-button fill="outline" (click)="tirarFoto()">
+      <ion-icon slot="start" name="camera"></ion-icon>
+      {{ fotoPreview ? 'Trocar Foto' : 'Adicionar Foto (Opcional)' }}
+    </ion-button>
+
+    <div *ngIf="fotoPreview" class="ion-margin-top">
+      <img [src]="fotoPreview" style="max-height: 200px; border-radius: 8px;">
+    </div>
+  </div>
+
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-button expand="block" class="ion-margin" (click)="salvar()">
+      Salvar Registro
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gerenciar Meus Itens{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-success fw-bold">Minhas Publicações</h2>
+        <div class="btn-group shadow-sm">
+            <a href="{% url 'criar_objeto' %}?situacao=ACHADO" class="btn btn-success fw-bold">
+                <i class="bi bi-plus-lg"></i> Achei
+            </a>
+            <a href="{% url 'criar_objeto' %}?situacao=PERDIDO" class="btn btn-danger fw-bold">
+                <i class="bi bi-plus-lg"></i> Perdi
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for objeto in objetos %}
+        <div class="col-md-12 mb-3">
+            
+            <div id="card-objeto-{{ objeto.id }}" 
+                 class="card shadow-sm border-start border-5 
+                 {% if objeto.status != 'ATIVO' %}
+                    border-secondary
+                 {% elif objeto.situacao == 'ACHADO' %}
+                    border-success
+                 {% else %}
+                    border-danger
+                 {% endif %}"
+                 data-situacao="{{ objeto.situacao }}"> <div class="card-body d-md-flex justify-content-between align-items-center">
+                    
+                    <div class="d-flex align-items-center mb-3 mb-md-0">
+                        <div class="me-3 text-center" style="width: 80px;">
+                            {% if objeto.foto %}
+                                <img src="{% url 'foto-objeto' objeto.get_nome_arquivo_foto %}" class="rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                                <i class="bi bi-box-seam fs-1 text-muted"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold">{{ objeto.descricao }}</h5>
+                            <p class="mb-0 text-muted small">
+                                {% if objeto.situacao == 'ACHADO' %}
+                                    <span class="badge bg-success me-1">ENCONTREI</span>
+                                {% else %}
+                                    <span class="badge bg-danger me-1">PERDI</span>
+                                {% endif %}
+
+                                <i class="bi bi-calendar"></i> {{ objeto.data_encontro|date:"d/m/Y" }} | 
+                                
+                                <span id="badge-status-{{ objeto.id }}" class="badge {% if objeto.status == 'ATIVO' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ objeto.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        
+                        <div class="form-check form-switch m-0 d-flex align-items-center" title="Marcar como resolvido/devolvido">
+                            <input class="form-check-input toggle-status me-2" type="checkbox" role="switch" 
+                                   id="statusSwitch-{{ objeto.id }}"
+                                   data-objeto-id="{{ objeto.id }}"
+                                   data-url="{% url 'alternar_status_ajax' objeto.id %}"
+                                   style="cursor: pointer; width: 3em; height: 1.5em;"
+                                   {% if objeto.status == 'ATIVO' %}checked{% endif %}>
+                            <label class="form-check-label small text-muted" for="statusSwitch-{{ objeto.id }}">
+                                Ativo?
+                            </label>
+                        </div>
+
+                        <div class="vr bg-secondary mx-2" style="height: 30px;"></div>
+
+                        <a href="{% url 'editar_objeto' objeto.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        
+                        <a href="{% url 'deletar_objeto' objeto.id %}" class="btn btn-outline-danger btn-sm" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <h4 class="mt-3">Você ainda não tem publicações.</h4>
+            <div class="mt-3">
+                <a href="{% url 'criar_objeto' %}?situacao=ACHADO" class="btn btn-success me-2">Achei algo</a>
+                <a href="{% url 'criar_objeto' %}?situacao=PERDIDO" class="btn btn-danger">Perdi algo</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        const toggles = document.querySelectorAll('.toggle-status');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const objetoId = this.getAttribute('data-objeto-id');
+                const url = this.getAttribute('data-url');
+                const isChecked = this.checked;
+                
+                const card = document.getElementById(`card-objeto-${objetoId}`);
+                const badge = document.getElementById(`badge-status-${objetoId}`);
+                
+                // Lê a situação original do objeto (ACHADO ou PERDIDO) do HTML
+                const situacao = card.getAttribute('data-situacao');
+
+                this.disabled = true;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro na requisição');
+                    return response.json();
+                })
+                .then(data => {
+                    // Lógica visual inteligente
+                    // Remove todas as cores possíveis primeiro
+                    card.classList.remove('border-secondary', 'border-success', 'border-danger');
+                    badge.classList.remove('bg-secondary', 'bg-primary');
+
+                    if (data.novo_status === 'ATIVO') {
+                        // Se voltou a ficar ATIVO, restaura a cor baseada na situação
+                        if (situacao === 'ACHADO') {
+                            card.classList.add('border-success');
+                        } else {
+                            card.classList.add('border-danger');
+                        }
+                        badge.classList.add('bg-primary');
+                    } else {
+                        // Se foi devolvido/arquivado, fica cinza
+                        card.classList.add('border-secondary');
+                        badge.classList.add('bg-secondary');
+                    }
+                    badge.textContent = data.status_display;
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    this.checked = !isChecked; // Reverte switch
+                    alert('Erro ao alterar status.');
+                })
+                .finally(() => {
+                    this.disabled = false;
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

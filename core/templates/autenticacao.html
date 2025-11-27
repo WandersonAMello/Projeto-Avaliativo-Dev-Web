@@ -1,44 +1,45 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-    <head>
-        {% load static %}
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Login</title>
-        <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
-        <link rel="stylesheet" href="{% static 'bootstrap/js/bootstrap.min.js' %}">
-        
-    </head>
-    <body class="bg-secondary">
-        <div class="container min-vh-100 d-flex align-items-center justify-content-center">
-            <div class="row w-100 justify-content-center">
-                <div class="col-12 col-md-8 col-lg-4">
-                    <div class="card shadow">
-                        <div class="card-body p-5">
-                            <h2 class="card-title text-center mb-4">Entrar</h2>
-                            <form action="/" method="POST">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label for="usuario" class="form-label">Login</label>
-                                    <input type="text" name="usuario" class="form-control" id="usuario" placeholder="Digite seu login">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="senha" class="form-label">Senha</label>
-                                    <input type="password" name="senha" class="form-control" id="senha" placeholder="Digite sua senha">
-                                </div>
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary">Logar</button>
-                                </div>
-                            </form>
-                            {% if mensagem %}
-                            <div class="alert alert-danger" role="alert">
-                                {{mensagem}}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Entrar no Sistema{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-body p-5 text-center">
+                    
+                    <img src="{% static 'img/brasao-uft.png' %}" alt="UFT" class="mb-4" style="width: 100px;">
+                    
+                    <h4 class="text-uft fw-bold mb-4">Acesso ao Sistema</h4>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Usuário</label>
+                                <input type="text" name="username" class="form-control" placeholder="Seu usuário" required>
                             </div>
-                            {% endif %}
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Senha</label>
+                                <input type="password" name="password" class="form-control" placeholder="Sua senha" required>
+                            </div>
                         </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn bg-uft text-white btn-lg fw-bold">Entrar</button>
+                        </div>
+                    </form>
+
+                    <div class="mt-4">
+                        <p class="text-muted small">Ainda não tem conta? <a href="{% url 'cadastro' %}" class="text-uft fw-bold">Cadastre-se</a></p>
                     </div>
                 </div>
             </div>
         </div>
-        <link rel="stylesheet" href="{% static 'js/bootstrap.min.js' %}">
-</html>
+    </div>
+</div>
+{% endblock %}
